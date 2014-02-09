@@ -4,6 +4,7 @@ import java.util.*;
 import org.apache.lucene.store.*;
 import java.io.File;
 import java.util.Scanner;
+
 class ValueComparator implements Comparator<String> {
 
     Map<String, Double> base;
@@ -22,13 +23,13 @@ class ValueComparator implements Comparator<String> {
 }
 
 public class SearchFiles {
+    
     HashMap<Integer, Integer> twoNorm = new HashMap<Integer, Integer>();
 
     public void getTwoNorm(IndexReader r) throws Exception
     {
-        
-        TermEnum t = r.terms();
         long startTime = System.currentTimeMillis();
+        TermEnum t = r.terms();
         int freq;
         while(t.next())
         {   
@@ -65,7 +66,7 @@ public class SearchFiles {
         for(Map.Entry<String, Double> pair : sortedMap.entrySet())
         {
             loopVar++;
-            if(loopVar >9)
+            if(loopVar >10)
                 break;
             System.out.println(pair.getKey());
         }
@@ -98,13 +99,11 @@ public class SearchFiles {
                 relTf += (double)(tdocs.freq())/(Math.sqrt(queryLen) * Math.sqrt(sObj.twoNorm.get(tdocs.doc())));
                 relMapTf.put(Integer.toString(tdocs.doc()), relTf);
             }
-        
         }
         System.out.println("Results of Tf");
         sObj.showResults(relMapTf);
         long endTime = System.currentTimeMillis();
         System.out.println("Ordering based on Tf results -Time Taken "+ (double)(endTime - startTime)/1000);
-
     }
     
     public void orderUsingTfIdf(String str, IndexReader r, SearchFiles sObj, Map<String, Double> relMapTfIdf) throws Exception
@@ -138,6 +137,7 @@ public class SearchFiles {
         long endTime = System.currentTimeMillis();
         System.out.println("Ordering based on TfIdf results -Time Taken "+ (double)(endTime - startTime)/1000);
     }
+    
     public static void main(String[] args) throws Exception
     {
         SearchFiles sObj = new SearchFiles();
@@ -166,6 +166,5 @@ public class SearchFiles {
             System.out.print("query> ");
         }
         sc.close();
-    }
-    
+    }   
 }
