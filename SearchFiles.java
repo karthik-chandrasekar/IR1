@@ -25,12 +25,20 @@ class ValueComparator implements Comparator<String> {
 public class SearchFiles {
     
     HashMap<Integer, Integer> twoNorm = new HashMap<Integer, Integer>();
-
-    public void getTwoNorm(IndexReader r) throws Exception
+    int docSize = 25054;
+    double minIdf=100000;
+    String minIdfTerm;
+    
+    
+    public void getTwoNorm(IndexReader r, SearchFiles sObj) throws Exception
     {
         long startTime = System.currentTimeMillis();
         TermEnum t = r.terms();
         int freq;
+        int totalDocs = r.maxDoc();
+        double  Idf;
+        
+        
         while(t.next())
         {   
             Term te = new Term("contents", t.term().text());
@@ -44,6 +52,12 @@ public class SearchFiles {
                 }
                 freq += td.freq() * td.freq();
                 twoNorm.put(td.doc(), freq);
+            }
+            Idf = (double)(totalDocs/(double)r.docFreq(t.term()));
+            if (Idf < sObj.minIdf)
+            {
+                sObj.minIdf = Idf;
+                sObj.minIdfTerm = t.term().text();
             }
         }
         long endTime = System.currentTimeMillis();
@@ -68,9 +82,8 @@ public class SearchFiles {
             loopVar++;
             if(loopVar >10)
                 break;
-            System.out.println(pair.getKey());
+            System.out.println(pair.getKey() + "-------- " + pair.getValue());
         }
-        loopVar = 0;
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for sorting stuffs compute is "+ (double)(endTime - startTime)/1000);
     }
@@ -81,15 +94,17 @@ public class SearchFiles {
         String[] terms = str.split("\\s+");
         int queryLen = terms.length;
         double relTf;
-        
         long startTime = System.currentTimeMillis();
-
         for(String word : terms)
         {
             Term term = new Term("contents", word);
             TermDocs tdocs = r.termDocs(term);
             while(tdocs.next())
             {
+                if (tdocs.doc() > sObj.docSize)
+                {
+                    continue;
+                }
                 relTf = 0;                  
             
                 if(relMapTf.containsKey(tdocs.doc()))
@@ -100,7 +115,7 @@ public class SearchFiles {
                 relMapTf.put(Integer.toString(tdocs.doc()), relTf);
             }
         }
-        System.out.println("Results of Tf");
+        System.out.println("Total number of results of Tf " + relMapTf.size());
         sObj.showResults(relMapTf);
         long endTime = System.currentTimeMillis();
         System.out.println("Ordering based on Tf results -Time Taken "+ (double)(endTime - startTime)/1000);
@@ -114,13 +129,16 @@ public class SearchFiles {
         long startTime = System.currentTimeMillis();
         double Idf;
         int totalDocs = r.maxDoc();
-
         for(String word : terms)
         {
             Term term = new Term("contents", word);
             TermDocs tdocs = r.termDocs(term);
             while(tdocs.next())
             {
+                if (tdocs.doc() > sObj.docSize)
+                {
+                    continue;
+                }
                 relTfIdf = 0;                   
                 if(relMapTfIdf.containsKey(tdocs.doc()))
                 {
@@ -128,11 +146,11 @@ public class SearchFiles {
                 }
                 
                 Idf = (double)(totalDocs/(double)r.docFreq(term));
-                relTfIdf += (double)((tdocs.freq() * Idf )/(Math.sqrt(queryLen) * Math.sqrt(sObj.twoNorm.get(tdocs.doc()))));
+                relTfIdf += (double)((tdocs.freq() * Idf )/((Math.sqrt(queryLen) * Math.sqrt(sObj.twoNorm.get(tdocs.doc())))));
                 relMapTfIdf.put(Integer.toString(tdocs.doc()), relTfIdf);       
             }
         }
-        System.out.println("Result of TfIdf");
+        System.out.println(" Total number of results of TfIdf " + relMapTfIdf.size());
         sObj.showResults(relMapTfIdf);
         long endTime = System.currentTimeMillis();
         System.out.println("Ordering based on TfIdf results -Time Taken "+ (double)(endTime - startTime)/1000);
@@ -142,10 +160,10 @@ public class SearchFiles {
     {
         SearchFiles sObj = new SearchFiles();
         IndexReader r = IndexReader.open(FSDirectory.open(new File("index")));
-        System.out.println("The number of documents in this index is: " + r.maxDoc());
         
         //Compute two norm for all the documents in the corpus
-        sObj.getTwoNorm(r);
+        sObj.getTwoNorm(r, sObj);
+        
         Scanner sc = new Scanner(System.in);
         String str = "";
         System.out.print("query> ");
@@ -154,14 +172,17 @@ public class SearchFiles {
         {   
             long startTime = System.currentTimeMillis();
             
+            //Tf ordering of results
             HashMap<String, Double> relMapTf = new HashMap<String, Double>();
             sObj.orderUsingTf(str, r, sObj, relMapTf);
                     
-            HashMap<String, Double> relMapTfIdf = new HashMap<String, Double>();        
-            sObj.orderUsingTfIdf(str, r, sObj, relMapTfIdf);
+            // TfIdf ordering of results
+            //HashMap<String, Double> relMapTfIdf = new HashMap<String, Double>();      
+            //sObj.orderUsingTfIdf(str, r, sObj, relMapTfIdf);
             
             long endTime = System.currentTimeMillis();
             
+            System.out.println("Least Idf value is " + sObj.minIdf + " Term is " + sObj.minIdfTerm);
             System.out.println("Time taken to get results "+ (double)(endTime - startTime)/1000);
             System.out.print("query> ");
         }
