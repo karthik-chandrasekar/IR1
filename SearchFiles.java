@@ -4,6 +4,7 @@ import java.util.*;
 import org.apache.lucene.store.*;
 import java.io.File;
 import java.util.Scanner;
+import org.apache.lucene.document.*;
 
 class ValueComparator implements Comparator<String> {
 
@@ -53,11 +54,14 @@ public class SearchFiles {
                 freq += td.freq() * td.freq();
                 twoNorm.put(td.doc(), freq);
             }
+            //To find the term with least Idf value
             Idf = (double)(totalDocs/(double)r.docFreq(t.term()));
-            if (Idf < sObj.minIdf)
+            //System.out.println(t.term().text());
+            if (Idf <= sObj.minIdf)
             {
                 sObj.minIdf = Idf;
                 sObj.minIdfTerm = t.term().text();
+                System.out.println(sObj.minIdfTerm);
             }
         }
         long endTime = System.currentTimeMillis();
@@ -65,7 +69,7 @@ public class SearchFiles {
     }
     
     
-    public void showResults(Map<String, Double> relMap)
+    public void showResults(Map<String, Double> relMap, IndexReader r) throws Exception
     {
         long startTime = System.currentTimeMillis();
         
@@ -82,7 +86,11 @@ public class SearchFiles {
             loopVar++;
             if(loopVar >10)
                 break;
-            System.out.println(pair.getKey() + "-------- " + pair.getValue());
+            //System.out.println(pair.getKey() + "-------- " + pair.getValue());
+            System.out.println(pair.getKey());
+            //Document d = r.document(Integer.parseInt(pair.getKey()));
+            //String url = d.getFieldable("path").stringValue(); // the 'path' field of the Document object holds the URL
+            //System.out.println(url.replace("%%", "/"));
         }
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for sorting stuffs compute is "+ (double)(endTime - startTime)/1000);
@@ -101,6 +109,7 @@ public class SearchFiles {
             TermDocs tdocs = r.termDocs(term);
             while(tdocs.next())
             {
+                //To restrict the document size
                 if (tdocs.doc() > sObj.docSize)
                 {
                     continue;
@@ -116,7 +125,7 @@ public class SearchFiles {
             }
         }
         System.out.println("Total number of results of Tf " + relMapTf.size());
-        sObj.showResults(relMapTf);
+        sObj.showResults(relMapTf, r);
         long endTime = System.currentTimeMillis();
         System.out.println("Ordering based on Tf results -Time Taken "+ (double)(endTime - startTime)/1000);
     }
@@ -151,7 +160,7 @@ public class SearchFiles {
             }
         }
         System.out.println(" Total number of results of TfIdf " + relMapTfIdf.size());
-        sObj.showResults(relMapTfIdf);
+        sObj.showResults(relMapTfIdf, r);
         long endTime = System.currentTimeMillis();
         System.out.println("Ordering based on TfIdf results -Time Taken "+ (double)(endTime - startTime)/1000);
     }
@@ -177,8 +186,8 @@ public class SearchFiles {
             sObj.orderUsingTf(str, r, sObj, relMapTf);
                     
             // TfIdf ordering of results
-            //HashMap<String, Double> relMapTfIdf = new HashMap<String, Double>();      
-            //sObj.orderUsingTfIdf(str, r, sObj, relMapTfIdf);
+            HashMap<String, Double> relMapTfIdf = new HashMap<String, Double>();        
+            sObj.orderUsingTfIdf(str, r, sObj, relMapTfIdf);
             
             long endTime = System.currentTimeMillis();
             
@@ -188,4 +197,4 @@ public class SearchFiles {
         }
         sc.close();
     }   
-}
+} 
