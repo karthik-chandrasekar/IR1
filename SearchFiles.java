@@ -69,7 +69,7 @@ public class SearchFiles {
     }
     
     
-    public void showResults(Map<String, Double> relMap, IndexReader r) throws Exception
+    public void showResults(Map<String, Double> relMap, IndexReader r, SearchFiles sObj) throws Exception
     {
         long startTime = System.currentTimeMillis();
         
@@ -80,22 +80,44 @@ public class SearchFiles {
         
         //Print top ten high relevant elements
         int loopVar = 0;
-
+        HashMap<String, Double> topTenSimilarDocs = new HashMap<String, Double>();
         for(Map.Entry<String, Double> pair : sortedMap.entrySet())
         {
             loopVar++;
             if(loopVar >10)
                 break;
-            //System.out.println(pair.getKey() + "-------- " + pair.getValue());
-            System.out.println(pair.getKey());
-            //Document d = r.document(Integer.parseInt(pair.getKey()));
-            //String url = d.getFieldable("path").stringValue(); // the 'path' field of the Document object holds the URL
-            //System.out.println(url.replace("%%", "/"));
+            topTenSimilarDocs.put(pair.getKey(), pair.getValue());
+           // System.out.println(pair.getKey());
         }
+        sObj.computeAuthorityHub(topTenSimilarDocs);
+        
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for sorting stuffs compute is "+ (double)(endTime - startTime)/1000);
     }
     
+    public void computeAuthorityHub(Map<String, Double> rootSet) throws Exception
+    {
+        LinkAnalyses la = new LinkAnalyses();
+        int [][] authAdj = new int[25054][25054];
+        int [][] hubAdj = new int[25054][25054];
+        int key;
+        
+        for(Map.Entry<String, Double> pair: rootSet.entrySet())
+        {
+            int links[] = la.getLinks(Integer.parseInt(pair.getKey()));
+            int cits[] = la.getCitations(Integer.parseInt(pair.getKey()));
+            key = Integer.parseInt(pair.getKey());
+            for(int val: links)
+            {
+                authAdj[key][val] = 1; 
+            }
+            
+            for(int val: cits)
+            {
+                hubAdj[key][val] = 1;
+            }
+        }
+    }
     
     public void orderUsingTf(String str, IndexReader r, SearchFiles sObj, Map<String, Double> relMapTf) throws Exception
     {
@@ -125,7 +147,7 @@ public class SearchFiles {
             }
         }
         System.out.println("Total number of results of Tf " + relMapTf.size());
-        sObj.showResults(relMapTf, r);
+        sObj.showResults(relMapTf, r, sObj);
         long endTime = System.currentTimeMillis();
         System.out.println("Ordering based on Tf results -Time Taken "+ (double)(endTime - startTime)/1000);
     }
@@ -160,7 +182,7 @@ public class SearchFiles {
             }
         }
         System.out.println(" Total number of results of TfIdf " + relMapTfIdf.size());
-        sObj.showResults(relMapTfIdf, r);
+        sObj.showResults(relMapTfIdf, r, sObj);
         long endTime = System.currentTimeMillis();
         System.out.println("Ordering based on TfIdf results -Time Taken "+ (double)(endTime - startTime)/1000);
     }
@@ -177,6 +199,7 @@ public class SearchFiles {
         String str = "";
         System.out.print("query> ");
 
+        
         while(!(str = sc.nextLine()).equals("quit"))
         {   
             long startTime = System.currentTimeMillis();
@@ -198,3 +221,4 @@ public class SearchFiles {
         sc.close();
     }   
 } 
+
