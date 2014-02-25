@@ -87,9 +87,9 @@ public class SearchFiles {
             if(loopVar >10)
                 break;
             topTenSimilarDocs.put(pair.getKey(), pair.getValue());
-           // System.out.println(pair.getKey());
+           System.out.println(pair.getKey() + "  " + pair.getValue());
         }
-        sObj.computeAuthorityHub(topTenSimilarDocs);
+        //sObj.computeAuthorityHub(topTenSimilarDocs);
         
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for sorting stuffs compute is "+ (double)(endTime - startTime)/1000);
@@ -147,7 +147,7 @@ public class SearchFiles {
             }
         }
         System.out.println("Total number of results of Tf " + relMapTf.size());
-        sObj.showResults(relMapTf, r, sObj);
+        //sObj.showResults(relMapTf, r, sObj);
         long endTime = System.currentTimeMillis();
         System.out.println("Ordering based on Tf results -Time Taken "+ (double)(endTime - startTime)/1000);
     }
@@ -177,6 +177,8 @@ public class SearchFiles {
                 }
                 
                 Idf = (double)(totalDocs/(double)r.docFreq(term));
+                Idf = Math.log(Idf)/Math.log(2);
+                //System.out.println("Idf  " + Idf);
                 relTfIdf += (double)((tdocs.freq() * Idf )/((Math.sqrt(queryLen) * Math.sqrt(sObj.twoNorm.get(tdocs.doc())))));
                 relMapTfIdf.put(Integer.toString(tdocs.doc()), relTfIdf);       
             }
@@ -206,7 +208,7 @@ public class SearchFiles {
             
             //Tf ordering of results
             HashMap<String, Double> relMapTf = new HashMap<String, Double>();
-            sObj.orderUsingTf(str, r, sObj, relMapTf);
+            //sObj.orderUsingTf(str, r, sObj, relMapTf);
                     
             // TfIdf ordering of results
             HashMap<String, Double> relMapTfIdf = new HashMap<String, Double>();        
