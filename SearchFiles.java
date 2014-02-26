@@ -4,7 +4,6 @@ import java.util.*;
 import org.apache.lucene.store.*;
 import java.io.File;
 import java.util.Scanner;
-import org.apache.lucene.document.*;
 
 class ValueComparator implements Comparator<String> {
 
@@ -26,11 +25,10 @@ class ValueComparator implements Comparator<String> {
 public class SearchFiles {
     
     HashMap<Integer, Integer> twoNorm = new HashMap<Integer, Integer>();
-    int docSize = 25054;
+    int docSize = 26000;
     double minIdf=100000;
     String minIdfTerm;
-    
-    
+ 
     public void getTwoNorm(IndexReader r, SearchFiles sObj) throws Exception
     {
         long startTime = System.currentTimeMillis();
@@ -38,8 +36,7 @@ public class SearchFiles {
         int freq;
         int totalDocs = r.maxDoc();
         double  Idf;
-        
-        
+    
         while(t.next())
         {   
             Term te = new Term("contents", t.term().text());
@@ -89,7 +86,7 @@ public class SearchFiles {
             topTenSimilarDocs.put(pair.getKey(), pair.getValue());
            System.out.println(pair.getKey() + "  " + pair.getValue());
         }
-        //sObj.computeAuthorityHub(topTenSimilarDocs);
+        sObj.computeAuthorityHub(topTenSimilarDocs);
         
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for sorting stuffs compute is "+ (double)(endTime - startTime)/1000);
@@ -97,16 +94,27 @@ public class SearchFiles {
     
     public void computeAuthorityHub(Map<String, Double> rootSet) throws Exception
     {
+        LinkAnalyses.numDocs = 25054;
         LinkAnalyses la = new LinkAnalyses();
-        int [][] authAdj = new int[25054][25054];
-        int [][] hubAdj = new int[25054][25054];
-        int key;
+        System.out.println("Declaring biggg matrix");
         
+        int [][] authAdj = new int[26000][26000];
+        int [][] hubAdj = new int[26000][26000];
+        int []  authScores = new int[26000];
+        int [] hubScores  = new int[26000];
+        int [] prevAuthScores = new int[26000];
+        int [] prevHubScores = new int[26000];
+        int key, row, col, maxIter = 0;
+        double conv = 0.0;
+        
+        System.out.println("Forming adjacency matrix");
         for(Map.Entry<String, Double> pair: rootSet.entrySet())
-        {
+        {   
+            //Forming adjacency matrix of hubs and authorities
             int links[] = la.getLinks(Integer.parseInt(pair.getKey()));
             int cits[] = la.getCitations(Integer.parseInt(pair.getKey()));
             key = Integer.parseInt(pair.getKey());
+        
             for(int val: links)
             {
                 authAdj[key][val] = 1; 
@@ -115,6 +123,52 @@ public class SearchFiles {
             for(int val: cits)
             {
                 hubAdj[key][val] = 1;
+            }
+        }
+        
+        System.out.println("Initializing authScores and hubScores");
+        //Initialize all 1's to authScores and hubScores
+        for(row=0;row<25054;row++)
+        {
+            authScores[row] = 1;
+            hubScores[row] = 1;
+        }
+        
+        System.out.println("Starting convergance iteration");
+        //Iterate it  till its converges
+        while(true)
+        {
+            //Single iteration to find authorities and hubs
+            for(row=0; row < 26000; row++)
+            {
+                //Authority computation
+                for(col=0;col<26000;col++)
+                {
+                    prevAuthScores[col] = authScores[col];
+                    authScores[row] += authAdj[row][col] * hubScores[col];
+                }
+            
+                //Hub computation
+                for(col=0;col<25054;col++)
+                {
+                    prevHubScores[col] = hubScores[col];
+                    hubScores[row] += hubAdj[row][col] * authScores[col];
+                }
+            }
+            
+            //Check for convergence
+            for(row=0;row<26000;row++)
+            {
+                conv += Math.pow((prevAuthScores[row] - authScores[row]), 2); 
+            }
+            conv = Math.sqrt(conv);
+            System.out.println(conv);
+            if (conv<100 || maxIter > 1000)
+            {   
+                maxIter += 1;
+                //if converged, break the iteration or if it reaches max iteration break it.
+                System.out.println("System is converged");
+                break;
             }
         }
     }
@@ -200,7 +254,6 @@ public class SearchFiles {
         Scanner sc = new Scanner(System.in);
         String str = "";
         System.out.print("query> ");
-
         
         while(!(str = sc.nextLine()).equals("quit"))
         {   
