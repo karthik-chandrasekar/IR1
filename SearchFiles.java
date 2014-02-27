@@ -25,7 +25,7 @@ class ValueComparator implements Comparator<String> {
 public class SearchFiles {
     
     HashMap<Integer, Integer> twoNorm = new HashMap<Integer, Integer>();
-    int docSize = 26000;
+    int docSize = 25054;
     double minIdf=100000;
     String minIdfTerm;
  
@@ -98,12 +98,12 @@ public class SearchFiles {
         LinkAnalyses la = new LinkAnalyses();
         System.out.println("Declaring biggg matrix");
         
-        int [][] authAdj = new int[26000][26000];
-        int [][] hubAdj = new int[26000][26000];
-        int []  authScores = new int[26000];
-        int [] hubScores  = new int[26000];
-        int [] prevAuthScores = new int[26000];
-        int [] prevHubScores = new int[26000];
+        int [][] authAdj = new int[25054][25054];
+        int [][] hubAdj = new int[25054][25054];
+        int []  authScores = new int[25054];
+        int [] hubScores  = new int[25054];
+        int [] prevAuthScores = new int[25054];
+        int [] prevHubScores = new int[25054];
         int key, row, col, maxIter = 0;
         double conv = 0.0;
         
@@ -139,10 +139,10 @@ public class SearchFiles {
         while(true)
         {
             //Single iteration to find authorities and hubs
-            for(row=0; row < 26000; row++)
+            for(row=0; row < 25054; row++)
             {
                 //Authority computation
-                for(col=0;col<26000;col++)
+                for(col=0;col<25054;col++)
                 {
                     prevAuthScores[col] = authScores[col];
                     authScores[row] += authAdj[row][col] * hubScores[col];
@@ -157,7 +157,7 @@ public class SearchFiles {
             }
             
             //Check for convergence
-            for(row=0;row<26000;row++)
+            for(row=0;row<25054;row++)
             {
                 conv += Math.pow((prevAuthScores[row] - authScores[row]), 2); 
             }
@@ -269,7 +269,7 @@ public class SearchFiles {
             
             long endTime = System.currentTimeMillis();
             
-            System.out.println("Least Idf value is " + sObj.minIdf + " Term is " + sObj.minIdfTerm);
+            //System.out.println("Least Idf value is " + sObj.minIdf + " Term is " + sObj.minIdfTerm);
             System.out.println("Time taken to get results "+ (double)(endTime - startTime)/1000);
             System.out.print("query> ");
         }
