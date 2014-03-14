@@ -87,92 +87,71 @@ public class SearchFiles {
            System.out.println(pair.getKey() + "  " + pair.getValue());
         }
         sObj.computeAuthorityHub(topTenSimilarDocs);
-        
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for sorting stuffs compute is "+ (double)(endTime - startTime)/1000);
     }
     
+
     public void computeAuthorityHub(Map<String, Double> rootSet) throws Exception
     {
         LinkAnalyses.numDocs = 25054;
         LinkAnalyses la = new LinkAnalyses();
-        System.out.println("Declaring biggg matrix");
-        
-        int [][] authAdj = new int[25054][25054];
-        int [][] hubAdj = new int[25054][25054];
-        int []  authScores = new int[25054];
-        int [] hubScores  = new int[25054];
-        int [] prevAuthScores = new int[25054];
-        int [] prevHubScores = new int[25054];
-        int key, row, col, maxIter = 0;
-        double conv = 0.0;
-        
-        System.out.println("Forming adjacency matrix");
-        for(Map.Entry<String, Double> pair: rootSet.entrySet())
-        {   
-            //Forming adjacency matrix of hubs and authorities
-            int links[] = la.getLinks(Integer.parseInt(pair.getKey()));
-            int cits[] = la.getCitations(Integer.parseInt(pair.getKey()));
-            key = Integer.parseInt(pair.getKey());
-        
-            for(int val: links)
+
+        HashSet<Integer> docSet = new HashSet<Integer>();       
+        //Form base set - collect all docs in both level
+        for(Map.Entry<String, Double> pair:rootSet.entrySet())
+        {
+            int docNum = Integer.parseInt(pair.getKey());
+            int links[] = la.getLinks(docNum);
+            int citations[] = la.getCitations(docNum);
+            docSet.add(docNum);         
+            for(int link:links)
             {
-                authAdj[key][val] = 1; 
+                docSet.add(link);
             }
             
-            for(int val: cits)
+            for(int cite:citations)
             {
-                hubAdj[key][val] = 1;
+                docSet.add(cite);
             }
         }
         
-        System.out.println("Initializing authScores and hubScores");
-        //Initialize all 1's to authScores and hubScores
-        for(row=0;row<25054;row++)
+        //Creating alias for original doc numbers 
+        int docCount = docSet.size();
+        HashMap<Integer, Integer> docMap = new HashMap<Integer, Integer>();
+        int count = 0;
+        for(Integer docNum:docSet)
         {
-            authScores[row] = 1;
-            hubScores[row] = 1;
+            docMap.put(docNum, count);
+            count ++;
         }
         
-        System.out.println("Starting convergance iteration");
-        //Iterate it  till its converges
-        while(true)
+        //Adjacent matrix construction
+        int [][] adjMatrix = new int[docCount][docCount];
+        System.out.println(adjMatrix);
+        System.out.println("Doc count " + docCount);
+        for(Integer docNum:docSet)
         {
-            //Single iteration to find authorities and hubs
-            for(row=0; row < 25054; row++)
-            {
-                //Authority computation
-                for(col=0;col<25054;col++)
-                {
-                    prevAuthScores[col] = authScores[col];
-                    authScores[row] += authAdj[row][col] * hubScores[col];
-                }
+            int links[] = la.getLinks(docNum);
             
-                //Hub computation
-                for(col=0;col<25054;col++)
+            for(int link:links)
+            {
+                if (docSet.contains(link))
                 {
-                    prevHubScores[col] = hubScores[col];
-                    hubScores[row] += hubAdj[row][col] * authScores[col];
+                    //Getting alias doc number and using it in adj matrix
+                    docNum = docMap.get(docSet);
+                    System.out.println(link);
+                    link = docMap.get(link);
+                    System.out.println(link);
+                    adjMatrix[docNum][link] = 1;
                 }
             }
-            
-            //Check for convergence
-            for(row=0;row<25054;row++)
-            {
-                conv += Math.pow((prevAuthScores[row] - authScores[row]), 2); 
-            }
-            conv = Math.sqrt(conv);
-            System.out.println(conv);
-            if (conv<100 || maxIter > 1000)
-            {   
-                maxIter += 1;
-                //if converged, break the iteration or if it reaches max iteration break it.
-                System.out.println("System is converged");
-                break;
-            }
         }
-    }
-    
+        
+        System.out.println(adjMatrix);
+        
+     }
+  
     public void orderUsingTf(String str, IndexReader r, SearchFiles sObj, Map<String, Double> relMapTf) throws Exception
     {
         String[] terms = str.split("\\s+");
@@ -250,6 +229,9 @@ public class SearchFiles {
         
         //Compute two norm for all the documents in the corpus
         sObj.getTwoNorm(r, sObj);
+        
+        //pageRank offline
+        //sObj.computePageRank();
         
         Scanner sc = new Scanner(System.in);
         String str = "";
