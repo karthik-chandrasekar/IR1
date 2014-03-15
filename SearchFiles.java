@@ -120,9 +120,9 @@ public class SearchFiles {
         
         //Creating alias for original doc numbers 
         int docCount = docSet.size();
+        int count = 0;
         HashMap<Integer, Integer> docMap = new HashMap<Integer, Integer>();
         HashMap<Integer, Integer> revDocMap = new HashMap<Integer, Integer>();
-        int count = 0;
         for(Integer docNum:docSet)
         {
             docMap.put(docNum, count);
@@ -167,55 +167,40 @@ public class SearchFiles {
         while(converge==0)
         {
             System.out.println("Inside power iteration");
+            
             //Matrix vector multiplication
             for(int i=0; i<docCount; i++)
             {
                 for(int j=0; j<docCount; j++)
                 {
                     tempVector[i] += adjMatrix[i][j] * vector[j];
-                    
-                }
-                if (tempVector[i] > 10000)
-                {
-                    tempVector[i] = tempVector[i] / 10000 ;
                 }
             }
             
             int diff;
             //checking for convergence
-            for(int i=0;i<docCount; i++)
-            {
-                diff= tempVector[i] - vector[i];
-                if(diff < 0)
-                    diff = -diff;
-                diffValue += diff;
-            
-            }
-            
-            if (diffValue == 0)
-            {
-                converge=1;
-            }
-            System.out.println(diffValue);
-            diffValue = 0;
-            
-            //Normalizing authority and hub values
-            
-            /*int max = 0;
-            //Find the maximum value
-            for(int i =0; i<docCount; i++)
-            {
-                if(tempVector[i] > max)
-                {
-                    max = tempVector[i];
-                }
-            }*/
-                
-            //Divide all values by the maximum
+        
             for(int i=0; i<docCount; i++)
             {
-                vector[i] = tempVector[i];
-            }       
+                if (tempVector[i] == vector[i])
+                {
+                    converge = 1;
+                }
+                else
+                {
+                    converge = 0;
+                    break;
+                }
+            }
+        
+            //Normalizing
+            for(int i=0; i<docCount; i++)
+            {
+                if (tempVector[i] > 1000)
+                {
+                    vector[i] = tempVector[i] / 1000 ;
+                }
+            }
         }
         System.out.println(vector);
     }
