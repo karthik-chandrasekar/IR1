@@ -86,7 +86,7 @@ public class SearchFiles {
             if(loopVar >10)
                 break;
             topTenSimilarDocs.put(pair.getKey(), pair.getValue());
-           System.out.println(pair.getKey() + "  " + pair.getValue());
+           //System.out.println(pair.getKey() + "  " + pair.getValue());
         }
         sObj.computeAuthorityHub(topTenSimilarDocs);
         long endTime = System.currentTimeMillis();
@@ -180,7 +180,6 @@ public class SearchFiles {
             {
                 for(int k=0; k<docCount; k++)
                 {
-                    System.out.println("i = "+ i + "j =" + j + "k =" + k);
                     temp += adjMatrixTrans[i][k] * adjMatrix[k][j];
             
                 }
@@ -206,10 +205,12 @@ public class SearchFiles {
         
         
         int converge = 0;
-        
+        int maxIteration = 0;
         //Do power iteration  for authority computation till it converges
         while(converge==0)
         {
+            
+            maxIteration ++;
             System.out.println("Inside power iteration");
             
             //authMatrix authVector multiplication
@@ -220,22 +221,20 @@ public class SearchFiles {
                     authTempVector[i] += authMatrix[i][j] * authVector[j];
                 }
             }
-            
-            //checking for convergence
-        
+  
+            System.out.println("Printing authVector -----------------------------------------------------------------");
+
             for(int i=0; i<docCount; i++)
             {
-                if (authTempVector[i] == authVector[i])
-                {
-                    converge = 1;
-                }
-                else
-                {
-                    converge = 0;
-                    break;
-                }
+                System.out.print(authVector[i]+" "); 
             }
-        
+            
+            for(int i=0; i<docCount; i++)
+            {
+                authVector[i] = authTempVector[i];
+            }
+            
+            
             // finding unit authVector
             double unitSum = 0;
             for(int i=0; i< docCount; i++)
@@ -246,15 +245,30 @@ public class SearchFiles {
             
             for(int i=0; i< docCount; i++)
             {
-                authVector[i] = (authVector[i] / unitSum);
+                authVector[i] = (authTempVector[i] / unitSum);
             }
-        
+     
+            
+          //checking for convergence
+            for(int i=0; i<docCount; i++)
+            {
+                if (authTempVector[i] == authVector[i])
+                {
+                    converge = 1;
+                }
+                else
+                {
+                    
+                    converge = 0;
+                    break;
+                }
+            }
             
         }
-        System.out.println(authVector);
+        
+
     }
    
-    
   
     public void orderUsingTf(String str, IndexReader r, SearchFiles sObj, Map<String, Double> relMapTf) throws Exception
     {
