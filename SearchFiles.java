@@ -100,33 +100,34 @@ public class SearchFiles {
         LinkAnalyses la = new LinkAnalyses();
 
         //Form base set - collect both links and citations of root set docs 
-        HashSet<Integer> docSet = new HashSet<Integer>();       
+        HashSet<Integer> baseSet = new HashSet<Integer>();       
         for(Map.Entry<String, Double> pair:rootSet.entrySet())
         {
             int docNum = Integer.parseInt(pair.getKey());
             int links[] = la.getLinks(docNum);
             int citations[] = la.getCitations(docNum);
-            docSet.add(docNum);         
+            baseSet.add(docNum);         
             for(int link:links)
             {
-                docSet.add(link);
+                baseSet.add(link);
             }
             
             for(int cite:citations)
             {
-                docSet.add(cite);
+                baseSet.add(cite);
             }
         }
         
         //Creating alias for original doc numbers 
-        int docCount = docSet.size();
-        HashMap<Integer, Integer> docMap = new HashMap<Integer, Integer>();
-        HashMap<Integer, Integer> revDocMap = new HashMap<Integer, Integer>();
+        HashMap<Integer, Integer> origDocToAliasDocMap = new HashMap<Integer, Integer>();
+        HashMap<Integer, Integer> aliasDocToOrigDocMap = new HashMap<Integer, Integer>();
+        int docCount = baseSet.size();
         int count = 0;
-        for(Integer docNum:docSet)
+
+        for(Integer docNum:baseSet)
         {
-            docMap.put(docNum, count);
-            revDocMap.put(count, docNum);
+            origDocToAliasDocMap.put(docNum, count);
+            aliasDocToOrigDocMap.put(count, docNum);
             count ++;
         }
         
@@ -136,29 +137,25 @@ public class SearchFiles {
         int [][] authMatrix = new int[docCount][docCount];
         int [][] hubMatrix = new int[docCount][docCount];
         
-        double [] vector = new double[docCount];
-        double [] tempVector = new double[docCount];
+        double [] authVector = new double[docCount];
+        double [] authTempVector = new double[docCount];
         
-        //Initialize the vector to 1
-        Arrays.fill(vector, 1);
+        //Initialize the authVector to 1
+        Arrays.fill(authVector, 1);
         
         System.out.println("Doc count " + docCount);
         
-        System.out.println(docSet);
-        for(Integer docNum:docSet)
+        System.out.println(baseSet);
+        for(Integer docNum:baseSet)
         {
             int links[] = la.getLinks(docNum);
-  
             for(int link:links)
             {
-                if (docSet.contains(link) && docSet.contains(docNum))
+                if (baseSet.contains(link) && baseSet.contains(docNum))
                 {
                     //Getting alias doc number and using it in adj matrix
-   
-                    docNum = docMap.get(docNum);
-                
-                    link = docMap.get(link);
-                
+                    docNum = origDocToAliasDocMap.get(docNum);
+                    link = origDocToAliasDocMap.get(link);
                     adjMatrix[docNum][link] = 1;
                 }
             }
@@ -215,12 +212,12 @@ public class SearchFiles {
         {
             System.out.println("Inside power iteration");
             
-            //Matrix vector multiplication
+            //authMatrix authVector multiplication
             for(int i=0; i<docCount; i++)
             {
                 for(int j=0; j<docCount; j++)
                 {
-                    tempVector[i] += authMatrix[i][j] * vector[j];
+                    authTempVector[i] += authMatrix[i][j] * authVector[j];
                 }
             }
             
@@ -228,7 +225,7 @@ public class SearchFiles {
         
             for(int i=0; i<docCount; i++)
             {
-                if (tempVector[i] == vector[i])
+                if (authTempVector[i] == authVector[i])
                 {
                     converge = 1;
                 }
@@ -239,22 +236,22 @@ public class SearchFiles {
                 }
             }
         
-            // finding unit vector
+            // finding unit authVector
             double unitSum = 0;
             for(int i=0; i< docCount; i++)
             {
-                unitSum += vector[i]*vector[i];
+                unitSum += authTempVector[i]*authTempVector[i];
             }
-            unitSum  = Math.sqrt(temp);
+            unitSum  = Math.sqrt(unitSum);
             
             for(int i=0; i< docCount; i++)
             {
-                vector[i] = (vector[i] / unitSum);
+                authVector[i] = (authVector[i] / unitSum);
             }
         
             
         }
-        System.out.println(vector);
+        System.out.println(authVector);
     }
    
     
