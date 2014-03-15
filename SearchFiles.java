@@ -120,9 +120,9 @@ public class SearchFiles {
         
         //Creating alias for original doc numbers 
         int docCount = docSet.size();
-        int count = 0;
         HashMap<Integer, Integer> docMap = new HashMap<Integer, Integer>();
         HashMap<Integer, Integer> revDocMap = new HashMap<Integer, Integer>();
+        int count = 0;
         for(Integer docNum:docSet)
         {
             docMap.put(docNum, count);
@@ -132,8 +132,12 @@ public class SearchFiles {
         
         //Adjacency matrix construction
         int [][] adjMatrix = new int[docCount][docCount];
-        int [] vector = new int[docCount];
-        int [] tempVector = new int[docCount];
+        int [][] adjMatrixTrans = new int[docCount][docCount];
+        int [][] authMatrix = new int[docCount][docCount];
+        int [][] hubMatrix = new int[docCount][docCount];
+        
+        double [] vector = new double[docCount];
+        double [] tempVector = new double[docCount];
         
         //Initialize the vector to 1
         Arrays.fill(vector, 1);
@@ -160,10 +164,53 @@ public class SearchFiles {
             }
         }
         
-        int converge = 0;
-        int diffValue = 0;
+        //Matrix Transpose
+        for(int i=0;i<docCount; i++)
+        {
+            for(int j=0; j<docCount; j++)
+            {
+                adjMatrixTrans[i][j] = adjMatrix[j][i];
+            }
+        }
         
-        //Do power iteration till it converges
+        int temp = 0;
+        //Finding authMatrix ==> adjMatrixTrans * adjMatrix
+        
+        System.out.println(adjMatrix);
+        for(int i=0; i<docCount; i++)
+        {
+            for(int j=0; j<docCount; j++)
+            {
+                for(int k=0; k<docCount; k++)
+                {
+                    System.out.println("i = "+ i + "j =" + j + "k =" + k);
+                    temp += adjMatrixTrans[i][k] * adjMatrix[k][j];
+            
+                }
+                authMatrix[i][j] = temp;
+                temp = 0;
+            }
+        }
+        
+        
+        //Finding hubMatrix ==> adjMatrix * adjMatrixTrans
+        for(int i=0; i<docCount; i++)
+        {
+            for(int j=0; j<docCount; j++)
+            {
+                for(int k=0; k<docCount; k++)
+                {
+                    temp += adjMatrix[i][k] * adjMatrixTrans[k][j];
+                }
+                hubMatrix[i][j] = temp;
+                temp = 0;
+            }
+        }
+        
+        
+        int converge = 0;
+        
+        //Do power iteration  for authority computation till it converges
         while(converge==0)
         {
             System.out.println("Inside power iteration");
@@ -173,11 +220,10 @@ public class SearchFiles {
             {
                 for(int j=0; j<docCount; j++)
                 {
-                    tempVector[i] += adjMatrix[i][j] * vector[j];
+                    tempVector[i] += authMatrix[i][j] * vector[j];
                 }
             }
             
-            int diff;
             //checking for convergence
         
             for(int i=0; i<docCount; i++)
@@ -193,14 +239,20 @@ public class SearchFiles {
                 }
             }
         
-            //Normalizing
-            for(int i=0; i<docCount; i++)
+            // finding unit vector
+            double unitSum = 0;
+            for(int i=0; i< docCount; i++)
             {
-                if (tempVector[i] > 1000)
-                {
-                    vector[i] = tempVector[i] / 1000 ;
-                }
+                unitSum += vector[i]*vector[i];
             }
+            unitSum  = Math.sqrt(temp);
+            
+            for(int i=0; i< docCount; i++)
+            {
+                vector[i] = (vector[i] / unitSum);
+            }
+        
+            
         }
         System.out.println(vector);
     }
