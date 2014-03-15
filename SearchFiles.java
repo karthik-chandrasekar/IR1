@@ -4,6 +4,8 @@ import java.util.*;
 import org.apache.lucene.store.*;
 import java.io.File;
 import java.util.Scanner;
+import java.util.Arrays;
+import java.util.Collections;
 
 class ValueComparator implements Comparator<String> {
 
@@ -97,8 +99,8 @@ public class SearchFiles {
         LinkAnalyses.numDocs = 25054;
         LinkAnalyses la = new LinkAnalyses();
 
+        //Form base set - collect both links and citations of root set docs 
         HashSet<Integer> docSet = new HashSet<Integer>();       
-        //Form base set - collect all docs in both level
         for(Map.Entry<String, Double> pair:rootSet.entrySet())
         {
             int docNum = Integer.parseInt(pair.getKey());
@@ -119,38 +121,106 @@ public class SearchFiles {
         //Creating alias for original doc numbers 
         int docCount = docSet.size();
         HashMap<Integer, Integer> docMap = new HashMap<Integer, Integer>();
+        HashMap<Integer, Integer> revDocMap = new HashMap<Integer, Integer>();
         int count = 0;
         for(Integer docNum:docSet)
         {
             docMap.put(docNum, count);
+            revDocMap.put(count, docNum);
             count ++;
         }
         
-        //Adjacent matrix construction
+        //Adjacency matrix construction
         int [][] adjMatrix = new int[docCount][docCount];
-        System.out.println(adjMatrix);
+        int [] vector = new int[docCount];
+        int [] tempVector = new int[docCount];
+        
+        //Initialize the vector to 1
+        Arrays.fill(vector, 1);
+        
         System.out.println("Doc count " + docCount);
+        
+        System.out.println(docSet);
         for(Integer docNum:docSet)
         {
             int links[] = la.getLinks(docNum);
-            
+  
             for(int link:links)
             {
-                if (docSet.contains(link))
+                if (docSet.contains(link) && docSet.contains(docNum))
                 {
                     //Getting alias doc number and using it in adj matrix
-                    docNum = docMap.get(docSet);
-                    System.out.println(link);
+   
+                    docNum = docMap.get(docNum);
+                
                     link = docMap.get(link);
-                    System.out.println(link);
+                
                     adjMatrix[docNum][link] = 1;
                 }
             }
         }
         
-        System.out.println(adjMatrix);
+        int converge = 0;
+        int diffValue = 0;
         
-     }
+        //Do power iteration till it converges
+        while(converge==0)
+        {
+            System.out.println("Inside power iteration");
+            //Matrix vector multiplication
+            for(int i=0; i<docCount; i++)
+            {
+                for(int j=0; j<docCount; j++)
+                {
+                    tempVector[i] += adjMatrix[i][j] * vector[j];
+                    
+                }
+                if (tempVector[i] > 10000)
+                {
+                    tempVector[i] = tempVector[i] / 10000 ;
+                }
+            }
+            
+            int diff;
+            //checking for convergence
+            for(int i=0;i<docCount; i++)
+            {
+                diff= tempVector[i] - vector[i];
+                if(diff < 0)
+                    diff = -diff;
+                diffValue += diff;
+            
+            }
+            
+            if (diffValue == 0)
+            {
+                converge=1;
+            }
+            System.out.println(diffValue);
+            diffValue = 0;
+            
+            //Normalizing authority and hub values
+            
+            /*int max = 0;
+            //Find the maximum value
+            for(int i =0; i<docCount; i++)
+            {
+                if(tempVector[i] > max)
+                {
+                    max = tempVector[i];
+                }
+            }*/
+                
+            //Divide all values by the maximum
+            for(int i=0; i<docCount; i++)
+            {
+                vector[i] = tempVector[i];
+            }       
+        }
+        System.out.println(vector);
+    }
+   
+    
   
     public void orderUsingTf(String str, IndexReader r, SearchFiles sObj, Map<String, Double> relMapTf) throws Exception
     {
