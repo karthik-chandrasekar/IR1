@@ -92,7 +92,6 @@ public class SearchFiles {
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for sorting stuffs compute is "+ (double)(endTime - startTime)/1000);
     }
-    
 
     public void computeAuthorityHub(Map<String, Double> rootSet) throws Exception
     {
@@ -139,9 +138,12 @@ public class SearchFiles {
         
         double [] authVector = new double[docCount];
         double [] authTempVector = new double[docCount];
-        
+        double [] hubVector = new double[docCount];
+        double [] hubTempVector = new double[docCount];       
+ 
         //Initialize the authVector to 1
         Arrays.fill(authVector, 1);
+        Arrays.fill(hubVector, 1);
         
         System.out.println("Doc count " + docCount);
         
@@ -203,14 +205,12 @@ public class SearchFiles {
             }
         }
         
-        
+
         int converge = 0;
         int maxIteration = 0;
         //Do power iteration  for authority computation till it converges
         while(converge==0)
         {
-            
-            maxIteration ++;
             System.out.println("Inside power iteration");
             
             //authMatrix authVector multiplication
@@ -223,18 +223,7 @@ public class SearchFiles {
             }
   
             System.out.println("Printing authVector -----------------------------------------------------------------");
-
-            for(int i=0; i<docCount; i++)
-            {
-                System.out.print(authVector[i]+" "); 
-            }
-            
-            for(int i=0; i<docCount; i++)
-            {
-                authVector[i] = authTempVector[i];
-            }
-            
-            
+           
             // finding unit authVector
             double unitSum = 0;
             for(int i=0; i< docCount; i++)
@@ -245,14 +234,18 @@ public class SearchFiles {
             
             for(int i=0; i< docCount; i++)
             {
-                authVector[i] = (authTempVector[i] / unitSum);
+                authTempVector[i] = (authTempVector[i] / unitSum);
             }
-     
-            
+            double threshold = 0.0000001;
+            double diff;
+            double minThreshold = 0;
+
           //checking for convergence
             for(int i=0; i<docCount; i++)
             {
-                if (authTempVector[i] == authVector[i])
+                diff = Math.abs(authTempVector[i] - authVector[i]);
+                //System.out.println("Difference "+ diff + "index " + i);
+                if (diff <= threshold || diff == 0)
                 {
                     converge = 1;
                 }
@@ -264,9 +257,82 @@ public class SearchFiles {
                 }
             }
             
+            for(int i=0; i<docCount; i++)
+            {
+                authVector[i] = authTempVector[i];
+            }
+    
         }
         
+        converge = 0;
+        maxIteration = 0;
+        //Do power iteration  for hub computation till it converges
+        while(converge==0)
+        {
+            System.out.println("Inside  hub power iteration");
+            
+            //hubMatrix hubVector multiplication
+            for(int i=0; i<docCount; i++)
+            {
+                for(int j=0; j<docCount; j++)
+                {
+                    hubTempVector[i] += hubMatrix[i][j] * hubVector[j];
+                }
+            }
+  
+            System.out.println("Printing hubVector -----------------------------------------------------------------");
+           
+            // finding unit hubVector
+            double unitSum = 0;
+            for(int i=0; i< docCount; i++)
+            {
+                unitSum += hubTempVector[i] * hubTempVector[i];
+            }
+            unitSum  = Math.sqrt(unitSum);
+            
+            for(int i=0; i< docCount; i++)
+            {
+                hubTempVector[i] = (hubTempVector[i] / unitSum);
+            }
+            double threshold = 0.0000001;
+            double diff;
+            double minThreshold = 0;
 
+          //checking for convergence
+            for(int i=0; i<docCount; i++)
+            {
+                diff = Math.abs(hubTempVector[i] - hubVector[i]);
+                //System.out.println("Difference "+ diff + "index " + i);
+                if (diff <= threshold || diff == 0)
+                {
+                    converge = 1;
+                }
+                else
+                {
+                    converge = 0;
+                    break;
+                }
+            }
+            
+            for(int i=0; i<docCount; i++)
+            {
+                hubVector[i] = hubTempVector[i];
+            }
+        }
+        
+        System.out.println("Authorities----------------------");
+        for(int i=0; i<docCount; i++)
+        {
+            System.out.print(" "+ authVector[i]);
+        }
+        
+        System.out.println("Hub --------------------------------");
+        for(int i=0; i<docCount; i++)
+        {
+            
+            System.out.print(" "+hubVector[i]);
+        }
+        
     }
    
   
@@ -376,4 +442,5 @@ public class SearchFiles {
         sc.close();
     }   
 } 
+
 
