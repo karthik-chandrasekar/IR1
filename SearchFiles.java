@@ -405,7 +405,116 @@ public class SearchFiles {
         long endTime = System.currentTimeMillis();
         System.out.println("Ordering based on TfIdf results -Time Taken "+ (double)(endTime - startTime)/1000);
     }
-    
+   
+    public void computePageRank(self):
+    {
+        LinkAnalyses.numDocs = 25054;
+        LinkAnalyses la = new LinkAnalyses();
+
+        int docCount = 25054;
+        int cProb = 0.8;
+        int sinkValue = (1/docCount);
+        int kValue = (1-cProb) * (1/docCount);
+        int nonZeroCount = 0;
+        int temp = 0;
+
+        double [] pageRankVector = new double[docCount];   
+        double [] tempPageRankVector = new double[docCount];
+        double [] row = new double[docCount];
+        double [] column = new double[docCount];
+
+        Map<Integer, Integer> nonZeroCountHash = new HashMap<Integer, Integer>();
+
+        //Setting initial page rank values to be 1
+        Arrays.fill(pageRankVector, 1);
+
+        //Fill the hash with non zero count
+        for(int i =0; i< docCount; i++)
+        {
+            nonZeroCount = 0;
+            column = la.getLinks(i);
+            for (int j=0; j< docCount; j++)
+            {
+                if (column[j]>0)
+                {
+                    nonZeroCount ++;        
+                }
+            }
+            nonZeroCountHash.set(i, nonZeroCount) 
+        }
+
+        while(converge ===0)
+        {
+            //Single matrix * vector multiplication
+            for(int i=0; i<docCount; i++)
+            {
+                row = la.getCitations(i);
+                for(j=0; j<docCount; j++)
+                {
+                    nonZeroCount = zeroCountHash.get(j)
+
+                    if (nonZeroCount ==0)
+                    {
+                        row[j] = (cProb * sinkValue) + kValue;
+                    }   
+                    else
+                    {
+                        row[j] = cProb * (row[j]/nonZeroCount) + kValue;
+                    }
+                } 
+
+                //row * page rank vector 
+                for(int l=0; l<docCount; l++)
+                {
+                   temp += row[l]*pageRankVector[l]; 
+                }
+                tempPageRankVector[i] = temp;
+                temp = 0;  
+            }
+
+        
+            //Finding unit pageRankVector
+            double unitSum = 0;
+            for(int i=0; i<docCount; i++)
+            {
+                unitSum += tempPageRankVector[i]* tempPageRankVector[i];
+            }
+            unitSum = Math.sqrt(unitSum);
+
+            for(int i=0; i<docCount; i++)
+            {
+                tempPageRankVector[i] = (tempPageRankVector[i]/ unitSum);
+            }
+
+            double threshold = 0.0000001;
+            double diff;
+            double minThreshold = 0;
+
+            //Checking for convergence
+            int converge = 0;
+            for(int i=0; i<docCount; i++)
+            {
+                diff = Math.abs(tempPageRankVector[i] - pageRankVector[i]);
+
+                if(diff <= threshold || diff ==0)
+                {
+                    converge = 1;
+                }
+                else
+                {
+                    converge = 0;
+                    break;
+                }
+            }
+
+            for(i=0; i<docCount; i++)
+            {
+                pageRankVector[i] = tempPageRankVector[i];
+            }
+        }
+    }
+
+ 
     public static void main(String[] args) throws Exception
     {
         SearchFiles sObj = new SearchFiles();
