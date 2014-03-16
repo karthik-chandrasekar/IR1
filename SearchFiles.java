@@ -485,7 +485,7 @@ public class SearchFiles {
             }
 
         
-            //Finding unit pageRankVector
+           /*** //Finding unit pageRankVector
             double unitSum = 0;
             for(int i=0; i<docCount; i++)
             {
@@ -496,9 +496,9 @@ public class SearchFiles {
             for(int i=0; i<docCount; i++)
             {
                 tempPageRankVector[i] = (tempPageRankVector[i]/ unitSum);
-            }
+            }***/
 
-            double threshold = 0.01;
+            double threshold = 0.001;
             double diff;
 
             //Checking for convergence
@@ -544,6 +544,7 @@ public class SearchFiles {
         
         //pageRank offline
         sObj.computePageRank();
+        System.out.print("Page Rank Computation is overerrrrrr !!!!!");
         
         Scanner sc = new Scanner(System.in);
         String str = "";
