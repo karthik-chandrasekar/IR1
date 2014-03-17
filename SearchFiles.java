@@ -121,9 +121,10 @@ public class SearchFiles {
         double temp;
         double finalTemp;
         //Page rank, relevance value normalization
+        System.out.println("Using W probablity" + wProb);
         for(Map.Entry<String, Double> pair:relMap.entrySet())
         {
-            System.out.println("Using W probablity" + wProb);
+            
             temp = 0.0;
             finalTemp = 0.0;
             temp = ((pair.getValue() - relMin) / (relMax - relMin)) * (pageRankMax - pageRankMin) + pageRankMin;
@@ -634,7 +635,7 @@ public class SearchFiles {
             
             if (str.startsWith("WThreshold"))
             {
-                parts = str.split(":");
+                parts = str.split("=");
                 sObj.wProb = Double.valueOf(parts[1]);
                 continue;
             }
