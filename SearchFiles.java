@@ -33,7 +33,7 @@ public class SearchFiles {
     double [] pageRankVector = new double[docSize]; 
     double pageRankMax =  0.0;
     double pageRankMin = 10000.0;
-    
+    double wProb = 0.8;
  
     public void getTwoNorm(IndexReader r, SearchFiles sObj) throws Exception
     {
@@ -103,7 +103,6 @@ public class SearchFiles {
     {
         Map<String, Double> pageRankResults= new HashMap<String, Double>();
         
-        double wProb = 0.8;
         double relMax = 0.0;
         double relMin = 100000.0;
         
@@ -124,6 +123,7 @@ public class SearchFiles {
         //Page rank, relevance value normalization
         for(Map.Entry<String, Double> pair:relMap.entrySet())
         {
+            System.out.println("Using W probablity" + wProb);
             temp = 0.0;
             finalTemp = 0.0;
             temp = ((pair.getValue() - relMin) / (relMax - relMin)) * (pageRankMax - pageRankMin) + pageRankMin;
@@ -134,8 +134,18 @@ public class SearchFiles {
          ValueComparator bvc =  new ValueComparator(pageRankResults);
          TreeMap<String,Double> sortedMap = new TreeMap<String,Double>(bvc);
          sortedMap.putAll(pageRankResults);
+         
+         //Printing page rank ordered results
          System.out.println("Page Rank Ordered Results");
-         System.out.println(sortedMap);
+         
+         int loopLimit =0;
+         for(Map.Entry<String, Double> pair:sortedMap.entrySet())
+         {
+             loopLimit ++;
+             System.out.println("Doc - " +  pair.getKey() + "Value - " + pair.getValue());
+             if (loopLimit == 10)
+                 break;
+         }
     }
     
     public void computeAuthorityHub(Map<String, Double> rootSet) throws Exception
@@ -401,7 +411,6 @@ public class SearchFiles {
         }
     }
  
-  
     public void orderUsingTf(String str, IndexReader r, SearchFiles sObj, Map<String, Double> relMapTf) throws Exception
     {
         String[] terms = str.split("\\s+");
@@ -509,10 +518,7 @@ public class SearchFiles {
             
             nonZeroCountHash.put(i, nonZeroCount);
         }
-
-        System.out.println("nonZeroCountHash");
-        System.out.println(nonZeroCountHash);
-
+ 
         int converge = 0;
         while(converge == 0)
         {
@@ -555,19 +561,6 @@ public class SearchFiles {
                 temp = 0;  
             }
 
-        
-           /*** //Finding unit pageRankVector
-            double unitSum = 0;
-            for(int i=0; i<docCount; i++)
-            {
-                unitSum += tempPageRankVector[i] * tempPageRankVector[i];
-            }
-            unitSum = Math.sqrt(unitSum);
-
-            for(int i=0; i<docCount; i++)
-            {
-                tempPageRankVector[i] = (tempPageRankVector[i]/ unitSum);
-            }***/
 
             double threshold = 0.001;
             double diff;
@@ -627,17 +620,25 @@ public class SearchFiles {
         sObj.getTwoNorm(r, sObj);
         
         //pageRank offline
-        //sObj.computePageRank();
+        sObj.computePageRank();
         System.out.print("Page Rank Computation is overerrrrrr !!!!!");
         
         Scanner sc = new Scanner(System.in);
         String str = "";
         System.out.print("query> ");
+        String [] parts;
         
         while(!(str = sc.nextLine()).equals("quit"))
         {   
             long startTime = System.currentTimeMillis();
             
+            if (str.startsWith("WThreshold"))
+            {
+                parts = str.split(":");
+                sObj.wProb = Double.valueOf(parts[1]);
+                continue;
+            }
+                
             //Tf ordering of results
             //sObj.orderUsingTf(str, r, sObj, relMapTf);
                     
