@@ -87,7 +87,7 @@ public class SearchFiles {
             topTenSimilarDocs.put(pair.getKey(), pair.getValue());
            //System.out.println(pair.getKey() + "  " + pair.getValue());
         }
-        //sObj.computeAuthorityHub(topTenSimilarDocs);
+        sObj.computeAuthorityHub(topTenSimilarDocs);
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for sorting stuffs compute is "+ (double)(endTime - startTime)/1000);
     }
@@ -141,8 +141,8 @@ public class SearchFiles {
         double [] hubTempVector = new double[docCount];       
  
         //Initialize the authVector to 1
-        Arrays.fill(authVector, 1);
-        Arrays.fill(hubVector, 1);
+        Arrays.fill(authVector, 1.0);
+        Arrays.fill(hubVector, 1.0);
         
         System.out.println("Doc count " + docCount);
         
@@ -315,19 +315,46 @@ public class SearchFiles {
             }
         }
         
-        System.out.println("Authorities----------------------");
+
+        Map<String, Double> AuthResultMap = new HashMap<String, Double>();
         for(int i=0; i<docCount; i++)
         {
-            System.out.print(" "+ authVector[i]);
+            //System.out.print(" "+ authVector[i]);
+            AuthResultMap.put(Integer.toString(aliasDocToOrigDocMap.get(i)), authVector[i]);
+        }
+        ValueComparator bvc =  new ValueComparator(AuthResultMap);
+        TreeMap<String,Double> authSortedMap = new TreeMap<String,Double>(bvc);
+        authSortedMap.putAll(AuthResultMap);
+        System.out.println("Top ten Authorities");
+        
+        int authCount = 0;
+        for(Map.Entry<String, Double> pair:authSortedMap.entrySet())
+        {
+            if (authCount == 10)break;
+            System.out.println("Doc -" + pair.getKey() + " Auth -" + pair.getValue());
+            authCount++;
         }
         
-        System.out.println("Hub --------------------------------");
+        
+        Map<String, Double> HubResultMap = new HashMap<String, Double>();
         for(int i=0; i<docCount; i++)
         {
-            
-            System.out.print(" "+hubVector[i]);
+            //System.out.print(" "+hubVector[i]);
+            HubResultMap.put(Integer.toString(aliasDocToOrigDocMap.get(i)), hubVector[i]);
         }
+        ValueComparator hubComp =  new ValueComparator(HubResultMap);
+        TreeMap<String,Double> hubSortedMap = new TreeMap<String,Double>(hubComp);
+        hubSortedMap.putAll(HubResultMap);
+        System.out.println("Top ten Hubs");
         
+        int hubCount = 0;
+        for(Map.Entry<String, Double> pair:hubSortedMap.entrySet())
+        {
+            if (hubCount == 10)break;
+            System.out.println("Doc -" + pair.getKey() + " Hub -" + pair.getValue());
+            hubCount++;
+        }
+
     }
    
   
@@ -543,7 +570,7 @@ public class SearchFiles {
         sObj.getTwoNorm(r, sObj);
         
         //pageRank offline
-        sObj.computePageRank();
+        //sObj.computePageRank();
         System.out.print("Page Rank Computation is overerrrrrr !!!!!");
         
         Scanner sc = new Scanner(System.in);
