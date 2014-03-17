@@ -85,16 +85,17 @@ public class SearchFiles {
         //Print top ten high relevant elements
         int loopVar = 0;
         HashMap<String, Double> topTenSimilarDocs = new HashMap<String, Double>();
+        System.out.println("Ordereing results based on TfIdf");
         for(Map.Entry<String, Double> pair : sortedMap.entrySet())
         {
             loopVar++;
             if(loopVar >10)
                 break;
             topTenSimilarDocs.put(pair.getKey(), pair.getValue());
-           //System.out.println(pair.getKey() + "  " + pair.getValue());
+            System.out.println(pair.getKey() + "  " + pair.getValue());
         }
         sObj.computeAuthorityHub(topTenSimilarDocs);
-        sObj.pageRankOrdering(relMap);
+        //sObj.pageRankOrdering(relMap);
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for sorting stuffs compute is "+ (double)(endTime - startTime)/1000);
     }
@@ -155,7 +156,9 @@ public class SearchFiles {
         LinkAnalyses.numDocs = 25054;
         LinkAnalyses la = new LinkAnalyses();
 
+        System.out.println("Inside compute Authority Hub");
         //Form base set - collect both links and citations of root set docs 
+        if (rootSet.isEmpty()) return;
         HashSet<Integer> baseSet = new HashSet<Integer>();       
         for(Map.Entry<String, Double> pair:rootSet.entrySet())
         {
@@ -187,6 +190,10 @@ public class SearchFiles {
             count ++;
         }
         
+        System.out.println("Before adjacency matrix construction");
+        System.out.println("Base set length" + baseSet.size());
+
+        
         //Adjacency matrix construction
         int [][] adjMatrix = new int[docCount][docCount];
         int [][] adjMatrixTrans = new int[docCount][docCount];
@@ -202,6 +209,7 @@ public class SearchFiles {
         Arrays.fill(authVector, 1.0);
         Arrays.fill(hubVector, 1.0);
         
+
         for(Integer docNum:baseSet)
         {
             int links[] = la.getLinks(docNum);
@@ -229,7 +237,6 @@ public class SearchFiles {
         int temp = 0;
         //Finding authMatrix ==> adjMatrixTrans * adjMatrix
         
-        System.out.println(adjMatrix);
         for(int i=0; i<docCount; i++)
         {
             for(int j=0; j<docCount; j++)
@@ -237,14 +244,13 @@ public class SearchFiles {
                 for(int k=0; k<docCount; k++)
                 {
                     temp += adjMatrixTrans[i][k] * adjMatrix[k][j];
-            
                 }
                 authMatrix[i][j] = temp;
                 temp = 0;
             }
         }
         
-        
+        System.out.println("Finding hubMatrix");
         //Finding hubMatrix ==> adjMatrix * adjMatrixTrans
         for(int i=0; i<docCount; i++)
         {
@@ -262,6 +268,9 @@ public class SearchFiles {
 
         int converge = 0;
         //Do power iteration  for authority computation till it converges
+        
+        System.out.println("Before convergence");
+
         while(converge==0)
         {
             System.out.println("Inside power iteration");
@@ -296,13 +305,14 @@ public class SearchFiles {
             for(int i=0; i<docCount; i++)
             {
                 diff = Math.abs(authTempVector[i] - authVector[i]);
-                //System.out.println("Difference "+ diff + "index " + i);
+                
                 if (diff <= threshold || diff == 0)
                 {
                     converge = 1;
                 }
                 else
                 {
+                    System.out.println("Difference "+ diff + "index " + i);
                     converge = 0;
                     break;
                 }
@@ -564,7 +574,7 @@ public class SearchFiles {
             }
 
 
-            double threshold = 0.001;
+            double threshold = 0.003;
             double diff;
 
             //Checking for convergence
@@ -615,7 +625,7 @@ public class SearchFiles {
         sObj.getTwoNorm(r, sObj);
         
         //PageRank computation
-        sObj.computePageRank();
+        //sObj.computePageRank();
         System.out.print("Page Rank Computation is overerrrrrr !!!!!");
         
         Scanner sc = new Scanner(System.in);
@@ -652,4 +662,5 @@ public class SearchFiles {
         sc.close();
     }   
 } 
+
 
