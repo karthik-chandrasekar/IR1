@@ -29,6 +29,11 @@ public class SearchFiles {
     int docSize = 25054;
     double minIdf=100000;
     String minIdfTerm;
+    HashMap<Integer, Double> docPageRankMap = new HashMap<Integer, Double>();
+    double [] pageRankVector = new double[docSize]; 
+    double pageRankMax =  0.0;
+    double pageRankMin = 10000.0;
+    
  
     public void getTwoNorm(IndexReader r, SearchFiles sObj) throws Exception
     {
@@ -88,10 +93,51 @@ public class SearchFiles {
            //System.out.println(pair.getKey() + "  " + pair.getValue());
         }
         sObj.computeAuthorityHub(topTenSimilarDocs);
+        sObj.pageRankOrdering(relMap);
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for sorting stuffs compute is "+ (double)(endTime - startTime)/1000);
     }
 
+    
+    public void pageRankOrdering(Map<String, Double> relMap)
+    {
+        Map<String, Double> pageRankResults= new HashMap<String, Double>();
+        
+        double wProb = 0.8;
+        double relMax = 0.0;
+        double relMin = 100000.0;
+        
+        for(Map.Entry<String, Double> pair:relMap.entrySet())
+        {
+            if (relMax < pair.getValue())
+            {
+                relMax = pair.getValue();
+            }
+            if(relMin> pair.getValue())
+            {
+                relMin = pair.getValue();
+            }
+        }
+        
+        double temp;
+        double finalTemp;
+        //Page rank, relevance value normalization
+        for(Map.Entry<String, Double> pair:relMap.entrySet())
+        {
+            temp = 0.0;
+            finalTemp = 0.0;
+            temp = ((pair.getValue() - relMin) / (relMax - relMin)) * (pageRankMax - pageRankMin) + pageRankMin;
+            finalTemp = wProb *  pageRankVector[Integer.parseInt(pair.getKey())] + (1-wProb) * temp; 
+            pageRankResults.put(pair.getKey(), finalTemp);
+        }
+        
+         ValueComparator bvc =  new ValueComparator(pageRankResults);
+         TreeMap<String,Double> sortedMap = new TreeMap<String,Double>(bvc);
+         sortedMap.putAll(pageRankResults);
+         System.out.println("Page Rank Ordered Results");
+         System.out.println(sortedMap);
+    }
+    
     public void computeAuthorityHub(Map<String, Double> rootSet) throws Exception
     {
         LinkAnalyses.numDocs = 25054;
@@ -313,8 +359,7 @@ public class SearchFiles {
             {
                 hubVector[i] = hubTempVector[i];
             }
-        }
-        
+        }  
 
         Map<String, Double> AuthResultMap = new HashMap<String, Double>();
         for(int i=0; i<docCount; i++)
@@ -354,9 +399,8 @@ public class SearchFiles {
             System.out.println("Doc -" + pair.getKey() + " Hub -" + pair.getValue());
             hubCount++;
         }
-
     }
-   
+ 
   
     public void orderUsingTf(String str, IndexReader r, SearchFiles sObj, Map<String, Double> relMapTf) throws Exception
     {
@@ -440,7 +484,7 @@ public class SearchFiles {
         int nonZeroCount = 0;
         double temp = 0;
 
-        double [] pageRankVector = new double[docCount];   
+         
         double [] tempPageRankVector = new double[docCount];
         int [] row = new int[docCount];
         int [] tempRow = new int[docCount];
@@ -545,17 +589,30 @@ public class SearchFiles {
                 }
             }
 
-            //print temp page rank vector
+           /*** //print temp page rank vector
             for(int i=0; i<docCount; i++)
             {
                 if (tempPageRankVector[i]>0)
                     System.out.print("Index "+ i + " "+ tempPageRankVector[i] + " ");
             }
             System.out.print("\n");
+            ***/
             
             for(int i=0; i<docCount; i++)
             {
                 pageRankVector[i] = tempPageRankVector[i];
+            }
+        }
+        
+        for(int p=0; p<docCount; p++)
+        {
+            if (pageRankMax < pageRankVector[p])
+            {
+                pageRankMax = pageRankVector[p];
+            }
+            if (pageRankMin > pageRankVector[p])
+            {
+                pageRankMin = pageRankVector[p];
             }
         }
     }
