@@ -34,7 +34,7 @@ public class SearchFiles {
     double pageRankMax =  0.0;
     double pageRankMin = 10000.0;
     double wProb = 0.8;
-    double cProb = 0.8;
+    double cProb = 0.9;
  
     public void getTwoNorm(IndexReader r, SearchFiles sObj) throws Exception
     {
@@ -94,8 +94,8 @@ public class SearchFiles {
             topTenSimilarDocs.put(pair.getKey(), pair.getValue());
             System.out.println(pair.getKey() + "  " + pair.getValue());
         }
-        sObj.computeAuthorityHub(topTenSimilarDocs);
-        //sObj.pageRankOrdering(relMap);
+        //sObj.computeAuthorityHub(topTenSimilarDocs);
+        sObj.pageRankOrdering(relMap);
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for sorting stuffs compute is "+ (double)(endTime - startTime)/1000);
     }
@@ -190,8 +190,8 @@ public class SearchFiles {
             count ++;
         }
         
-        System.out.println("Before adjacency matrix construction");
-        System.out.println("Base set length" + baseSet.size());
+       // System.out.println("Before adjacency matrix construction");
+        //System.out.println("Base set length" + baseSet.size());
 
         
         //Adjacency matrix construction
@@ -250,7 +250,7 @@ public class SearchFiles {
             }
         }
         
-        System.out.println("Finding hubMatrix");
+        //System.out.println("Finding hubMatrix");
         //Finding hubMatrix ==> adjMatrix * adjMatrixTrans
         for(int i=0; i<docCount; i++)
         {
@@ -269,11 +269,11 @@ public class SearchFiles {
         int converge = 0;
         //Do power iteration  for authority computation till it converges
         
-        System.out.println("Before convergence");
+       // System.out.println("Before convergence");
 
         while(converge==0)
         {
-            System.out.println("Inside power iteration");
+            //System.out.println("Inside power iteration");
             
             //authMatrix authVector multiplication
             for(int i=0; i<docCount; i++)
@@ -284,7 +284,7 @@ public class SearchFiles {
                 }
             }
   
-            System.out.println("Printing authVector -----------------------------------------------------------------");
+           // System.out.println("Printing authVector -----------------------------------------------------------------");
            
             // finding unit authVector
             double unitSum = 0;
@@ -312,7 +312,7 @@ public class SearchFiles {
                 }
                 else
                 {
-                    System.out.println("Difference "+ diff + "index " + i);
+                    //System.out.println("Difference "+ diff + "index " + i);
                     converge = 0;
                     break;
                 }
@@ -329,7 +329,7 @@ public class SearchFiles {
         //Do power iteration  for hub computation till it converges
         while(converge==0)
         {
-            System.out.println("Inside  hub power iteration");
+            //System.out.println("Inside  hub power iteration");
             
             //hubMatrix hubVector multiplication
             for(int i=0; i<docCount; i++)
@@ -340,7 +340,7 @@ public class SearchFiles {
                 }
             }
   
-            System.out.println("Printing hubVector -----------------------------------------------------------------");
+           //System.out.println("Printing hubVector -----------------------------------------------------------------");
            
             // finding unit hubVector
             double unitSum = 0;
@@ -500,7 +500,7 @@ public class SearchFiles {
         int docCount = 25054;
         int nonZeroCount = 0;
         double sinkValue = (double)1/docCount;
-        double kValue = (1-cProb) * sinkValue;
+        double kValue = (double)(1-cProb) * sinkValue;
         double temp = 0;
 
         double [] tempPageRankVector = new double[docCount];
@@ -523,11 +523,13 @@ public class SearchFiles {
             if (column != null)
             {
                 nonZeroCount = column.length;
+                System.out.println("Column Length -" % (column.length));
             }
-            
+            column = new int[docCount];
             nonZeroCountHash.put(i, nonZeroCount);
         }
  
+        
         int converge = 0;
         int convergeCount = 0;
         while(converge == 0)
@@ -549,6 +551,7 @@ public class SearchFiles {
                         row[tempRow[m]] = 1;
                     }
                 }
+                tempRow = new int[docCount];
                 
                 for(int j=0; j < docCount; j++)
                 {
@@ -574,7 +577,7 @@ public class SearchFiles {
             }
 
 
-            double threshold = 0.003;
+            double threshold = 0.001;
             double diff;
 
             //Checking for convergence
@@ -625,7 +628,7 @@ public class SearchFiles {
         sObj.getTwoNorm(r, sObj);
         
         //PageRank computation
-        //sObj.computePageRank();
+        sObj.computePageRank();
         System.out.print("Page Rank Computation is overerrrrrr !!!!!");
         
         Scanner sc = new Scanner(System.in);
@@ -636,6 +639,7 @@ public class SearchFiles {
         while(!(str = sc.nextLine()).equals("quit"))
         {   
             long startTime = System.currentTimeMillis();
+            str = str.toLowerCase();
            
             //To handle W Threshold value in query time 
             if (str.startsWith("WThreshold"))
@@ -662,5 +666,4 @@ public class SearchFiles {
         sc.close();
     }   
 } 
-
 
