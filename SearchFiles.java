@@ -5,6 +5,7 @@ import org.apache.lucene.store.*;
 import java.io.File;
 import java.util.Scanner;
 import java.util.Arrays;
+import java.text.NumberFormat;
 
 class ValueComparator implements Comparator<String> {
 
@@ -31,8 +32,10 @@ public class SearchFiles {
     String minIdfTerm;
     HashMap<Integer, Double> docPageRankMap = new HashMap<Integer, Double>();
     double [] pageRankVector = new double[docSize]; 
-    double pageRankMax =  1.0;
-    double pageRankMin = 0.0;
+  
+    int maxPageRankIndex=0;
+    int minPageRankIndex=0;
+    
     double wProb = 0.4;
     double cProb = 0.8;
     int K = 10;
@@ -77,7 +80,6 @@ public class SearchFiles {
     public void showResults(Map<String, Double> relMap, IndexReader r, SearchFiles sObj) throws Exception
     {
         
-        
         //Override the comparator to sort the relMap by value. 
         ValueComparator bvc =  new ValueComparator(relMap);
         TreeMap<String,Double> sortedMap = new TreeMap<String,Double>(bvc);
@@ -111,6 +113,11 @@ public class SearchFiles {
         double relMax = 0.0;
         double relMin = 100000.0;
         
+        double pageRankMax = 0.0;
+        double pageRankMin = 100000.0;
+        
+        
+        //Find Tf/Idf relavance max and min to normalize
         for(Map.Entry<String, Double> pair:relMap.entrySet())
         {
             if (relMax < pair.getValue())
@@ -123,20 +130,31 @@ public class SearchFiles {
             }
         }
         
+       
+      
         double temp;
         double finalTemp;
-        //Page rank, relevance value normalization
+        
+        double normMin = 0.0;
+        double normMax = 1.0;
+        
+        //Page rank value normalization to zero to one
+       
+        
+        
+        //Relevance value normalization to zero to one
         System.out.println("Using W probablity" + wProb);
         for(Map.Entry<String, Double> pair:relMap.entrySet())
         {
             
             temp = 0.0;
             finalTemp = 0.0;
-            temp = ((pair.getValue() - relMin) / (relMax - relMin)) * (pageRankMax - pageRankMin) + pageRankMin;
+            temp = ((pair.getValue() - relMin) / (relMax - relMin)) * (normMin- normMax) + normMin;
             finalTemp = wProb *  pageRankVector[Integer.parseInt(pair.getKey())] + (1-wProb) * temp; 
             pageRankResults.put(pair.getKey(), finalTemp);
         }
         
+     
          ValueComparator bvc =  new ValueComparator(pageRankResults);
          TreeMap<String,Double> sortedMap = new TreeMap<String,Double>(bvc);
          sortedMap.putAll(pageRankResults);
@@ -282,8 +300,10 @@ public class SearchFiles {
 
         startTime = System.currentTimeMillis();
 
+        int authIterationCount = 0;
         while(converge==0)
         {
+            authIterationCount ++;
             //System.out.println("Inside power iteration");
             
             //authMatrix authVector multiplication
@@ -337,13 +357,15 @@ public class SearchFiles {
         }
         endTime = System.currentTimeMillis();
         System.out.println("Time taken to converge Authority "+ (double)(endTime - startTime)/1000);
-
+        System.out.println("Number of Authoriy Convergence Iteration " + authIterationCount);
         
         startTime = System.currentTimeMillis();
         converge = 0;
         //Do power iteration  for hub computation till it converges
+        int hubIterationCount = 0;
         while(converge==0)
         {
+            hubIterationCount++;
             //System.out.println("Inside  hub power iteration");
             
             //hubMatrix hubVector multiplication
@@ -395,7 +417,9 @@ public class SearchFiles {
         }  
         endTime = System.currentTimeMillis();
         System.out.println("Time taken to converge Hub "+ (double)(endTime - startTime)/1000);
+        System.out.println("Number of Hub Convergence Iteration " + hubIterationCount);
 
+        
         startTime = System.currentTimeMillis();
         // Print top ten authority resutls
         Map<String, Double> AuthResultMap = new HashMap<String, Double>();
@@ -515,7 +539,22 @@ public class SearchFiles {
         System.out.println("Ordering based on TfIdf results -Time Taken "+ (double)(endTime - startTime)/1000);
     }
    
-    public void computePageRank()
+    public void getMemoryUsage()
+    {
+        Runtime runtime = Runtime.getRuntime();
+
+        NumberFormat format = NumberFormat.getInstance();
+
+        StringBuilder sb = new StringBuilder();
+        long totalMemory = runtime.totalMemory();
+        long freeMemory = runtime.freeMemory();
+
+        sb.append("Total Memory: " + format.format(totalMemory / 1024) + "<br/>");
+        sb.append("Free memory: " + format.format(freeMemory / 1024) + "<br/>");
+        System.out.println(sb);
+    }
+    
+    public void computePageRank(SearchFiles sObj)
     {
         LinkAnalyses.numDocs = 25054;
         LinkAnalyses la = new LinkAnalyses();
@@ -525,6 +564,7 @@ public class SearchFiles {
         double sinkValue = (double)1/docCount;
         double kValue = (double)(1-cProb) * sinkValue;
         double temp = 0;
+      
 
         double [] tempPageRankVector = new double[docCount];
         double [] markovMatrix = new double[docCount];
@@ -533,6 +573,7 @@ public class SearchFiles {
         int [] column = new int[docCount];
 
         Map<Integer, Integer> nonZeroCountHash = new HashMap<Integer, Integer>();
+        getMemoryUsage();
 
         //Setting initial page rank vector values to be 1
         Arrays.fill(pageRankVector, sinkValue);
@@ -554,7 +595,6 @@ public class SearchFiles {
         
         int converge = 0;
         int convergeCount = 0;
-        int maxIteration = 0;
         
         while(converge == 0)
         {
@@ -636,21 +676,67 @@ public class SearchFiles {
             {
                 pageRankVector[i] = tempPageRankVector[i];
             }
+         
         }
         
         System.out.println("Total number of iterations taken for page rank convergence - " + convergeCount);
         
-        for(int p=0; p<docCount; p++)
+        sObj.normalizePageRank();
+        
+    }
+    
+    
+    public void normalizePageRank()
+    {
+        //Normalize page rank to the limits [0,1]
+        
+        double temp;
+        double pageRankMax = 0.0;
+        double pageRankMin = 100000.0;
+        double normMin = 0.0;
+        double normMax = 1.0;
+    
+        for(int i=0; i<docSize; i++)
         {
-            if (pageRankMax < pageRankVector[p])
+            if (pageRankMax < pageRankVector[i])
             {
-                pageRankMax = pageRankVector[p];
+                pageRankMax = pageRankVector[i];
             }
-            if (pageRankMin > pageRankVector[p])
+            
+            if (pageRankMax > pageRankVector[i])
             {
-                pageRankMin = pageRankVector[p];
+                pageRankMax = pageRankVector[i];
             }
+            
         }
+        
+        
+        for(int i=0; i<docSize; i++)
+        {
+            temp = 0.0;
+            temp = ((pageRankVector[i] - pageRankMin) / (pageRankMax - pageRankMin)) * (normMin- normMax) + normMin;
+            pageRankVector[i] = temp;
+        }
+        
+        
+        
+        for(int i=0; i<docSize; i++)
+        {
+            if (pageRankMax < pageRankVector[i])
+            {
+                pageRankMax = pageRankVector[i];
+            }
+            
+            if (pageRankMax > pageRankVector[i])
+            {
+                pageRankMax = pageRankVector[i];
+            }
+            
+        }
+        
+        System.out.println("Page Rank Max is " + pageRankMax);
+        System.out.println("Page Rank Min is " + pageRankMin);
+
     }
 
  
@@ -663,7 +749,8 @@ public class SearchFiles {
         sObj.getTwoNorm(r, sObj);
         
         //PageRank computation
-        //sObj.computePageRank();
+        sObj.computePageRank(sObj);
+        sObj.getMemoryUsage();
         System.out.print("Page Rank Computation is overerrrrrr !!!!!");
         
         Scanner sc = new Scanner(System.in);
