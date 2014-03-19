@@ -31,10 +31,11 @@ public class SearchFiles {
     String minIdfTerm;
     HashMap<Integer, Double> docPageRankMap = new HashMap<Integer, Double>();
     double [] pageRankVector = new double[docSize]; 
-    double pageRankMax =  0.0;
-    double pageRankMin = 10000.0;
-    double wProb = 0.8;
+    double pageRankMax =  1.0;
+    double pageRankMin = 0.0;
+    double wProb = 0.4;
     double cProb = 0.8;
+    int K = 10;
  
     public void getTwoNorm(IndexReader r, SearchFiles sObj) throws Exception
     {
@@ -75,7 +76,7 @@ public class SearchFiles {
     
     public void showResults(Map<String, Double> relMap, IndexReader r, SearchFiles sObj) throws Exception
     {
-        long startTime = System.currentTimeMillis();
+        
         
         //Override the comparator to sort the relMap by value. 
         ValueComparator bvc =  new ValueComparator(relMap);
@@ -89,15 +90,17 @@ public class SearchFiles {
         for(Map.Entry<String, Double> pair : sortedMap.entrySet())
         {
             loopVar++;
-            if(loopVar >10)
+            if(loopVar >K)
                 break;
             topTenSimilarDocs.put(pair.getKey(), pair.getValue());
-            System.out.println(pair.getKey() + "  " + pair.getValue());
+            System.out.println(pair.getKey());
         }
-        //sObj.computeAuthorityHub(topTenSimilarDocs);
-        sObj.pageRankOrdering(relMap);
+        long startTime = System.currentTimeMillis();
+        sObj.computeAuthorityHub(topTenSimilarDocs);
         long endTime = System.currentTimeMillis();
-        System.out.println("Time taken for sorting stuffs compute is "+ (double)(endTime - startTime)/1000);
+        System.out.println("Time taken for Auth and Hubs "+ (double)(endTime - startTime)/1000);
+        sObj.pageRankOrdering(relMap);
+        
     }
 
     
@@ -145,7 +148,7 @@ public class SearchFiles {
          for(Map.Entry<String, Double> pair:sortedMap.entrySet())
          {
              loopLimit ++;
-             System.out.println("Doc - " +  pair.getKey() + "Value - " + pair.getValue());
+             System.out.println(pair.getKey());
              if (loopLimit == 10)
                  break;
          }
@@ -181,6 +184,7 @@ public class SearchFiles {
         HashMap<Integer, Integer> origDocToAliasDocMap = new HashMap<Integer, Integer>();
         HashMap<Integer, Integer> aliasDocToOrigDocMap = new HashMap<Integer, Integer>();
         int docCount = baseSet.size();
+        System.out.println("Base set" + docCount);
         int count = 0;
 
         for(Integer docNum:baseSet)
@@ -206,6 +210,8 @@ public class SearchFiles {
         double [] hubTempVector = new double[docCount];       
  
         //Initialize the authVector to 1
+        long startTime = System.currentTimeMillis();
+        
         Arrays.fill(authVector, 1.0);
         Arrays.fill(hubVector, 1.0);
         
@@ -265,11 +271,16 @@ public class SearchFiles {
             }
         }
         
+        long endTime = System.currentTimeMillis();
+        System.out.println("Time taken to form based set and adj matrix "+ (double)(endTime - startTime)/1000);
 
+        
         int converge = 0;
         //Do power iteration  for authority computation till it converges
         
        // System.out.println("Before convergence");
+
+        startTime = System.currentTimeMillis();
 
         while(converge==0)
         {
@@ -324,7 +335,11 @@ public class SearchFiles {
             }
     
         }
+        endTime = System.currentTimeMillis();
+        System.out.println("Time taken to converge Authority "+ (double)(endTime - startTime)/1000);
+
         
+        startTime = System.currentTimeMillis();
         converge = 0;
         //Do power iteration  for hub computation till it converges
         while(converge==0)
@@ -378,8 +393,10 @@ public class SearchFiles {
                 hubVector[i] = hubTempVector[i];
             }
         }  
+        endTime = System.currentTimeMillis();
+        System.out.println("Time taken to converge Hub "+ (double)(endTime - startTime)/1000);
 
-
+        startTime = System.currentTimeMillis();
         // Print top ten authority resutls
         Map<String, Double> AuthResultMap = new HashMap<String, Double>();
         for(int i=0; i<docCount; i++)
@@ -396,11 +413,14 @@ public class SearchFiles {
         for(Map.Entry<String, Double> pair:authSortedMap.entrySet())
         {
             if (authCount == 10)break;
-            System.out.println("Doc -" + pair.getKey() + " Auth -" + pair.getValue());
+            System.out.println(pair.getKey());
             authCount++;
         }
-       
- 
+        endTime = System.currentTimeMillis();
+        System.out.println("Time taken to find top ten authority "+ (double)(endTime - startTime)/1000);
+
+        
+        startTime = System.currentTimeMillis();
         //Print top ten hub results
         Map<String, Double> HubResultMap = new HashMap<String, Double>();
         for(int i=0; i<docCount; i++)
@@ -417,9 +437,12 @@ public class SearchFiles {
         for(Map.Entry<String, Double> pair:hubSortedMap.entrySet())
         {
             if (hubCount == 10)break;
-            System.out.println("Doc -" + pair.getKey() + " Hub -" + pair.getValue());
+            System.out.println(pair.getKey());
             hubCount++;
         }
+        endTime = System.currentTimeMillis();
+        System.out.println("Time taken to find top ten hubs "+ (double)(endTime - startTime)/1000);
+
     }
  
     public void orderUsingTf(String str, IndexReader r, SearchFiles sObj, Map<String, Double> relMapTf) throws Exception
@@ -640,7 +663,7 @@ public class SearchFiles {
         sObj.getTwoNorm(r, sObj);
         
         //PageRank computation
-        sObj.computePageRank();
+        //sObj.computePageRank();
         System.out.print("Page Rank Computation is overerrrrrr !!!!!");
         
         Scanner sc = new Scanner(System.in);
