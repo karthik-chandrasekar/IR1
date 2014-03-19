@@ -34,7 +34,7 @@ public class SearchFiles {
     double pageRankMax =  0.0;
     double pageRankMin = 10000.0;
     double wProb = 0.8;
-    double cProb = 0.9;
+    double cProb = 0.8;
  
     public void getTwoNorm(IndexReader r, SearchFiles sObj) throws Exception
     {
@@ -512,7 +512,7 @@ public class SearchFiles {
         Map<Integer, Integer> nonZeroCountHash = new HashMap<Integer, Integer>();
 
         //Setting initial page rank vector values to be 1
-        Arrays.fill(pageRankVector, 1);
+        Arrays.fill(pageRankVector, sinkValue);
 
         //Fill the hash with non zero count
         for(int i=0; i< docCount; i++)
@@ -523,7 +523,6 @@ public class SearchFiles {
             if (column != null)
             {
                 nonZeroCount = column.length;
-                System.out.println("Column Length -" % (column.length));
             }
             column = new int[docCount];
             nonZeroCountHash.put(i, nonZeroCount);
@@ -532,14 +531,25 @@ public class SearchFiles {
         
         int converge = 0;
         int convergeCount = 0;
+        int maxIteration = 0;
+        
         while(converge == 0)
         {
             convergeCount++;
+            //maxIteration++;
+            /*if(maxIteration == 2)
+            {
+                break;
+            }*/
             
             //Single matrix * vector multiplication
             System.out.println("Trying to converge");
             for(int i=0; i < docCount; i++)
             {
+                /*if (i ==10)
+                {
+                    break;
+                }*/
                 tempRow = la.getCitations(i);
                 Arrays.fill(row, 0);
                 
@@ -573,7 +583,9 @@ public class SearchFiles {
                    temp += markovMatrix[l]*pageRankVector[l]; 
                 }
                 tempPageRankVector[i] = temp;
-                temp = 0;  
+                 
+                //System.out.println("Index " + i + " value " + temp);
+                temp = 0; 
             }
 
 
