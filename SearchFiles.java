@@ -112,9 +112,7 @@ public class SearchFiles {
         
         double relMax = 0.0;
         double relMin = 100000.0;
-        
-        double pageRankMax = 0.0;
-        double pageRankMin = 100000.0;
+      
         
         
         //Find Tf/Idf relavance max and min to normalize
@@ -131,16 +129,8 @@ public class SearchFiles {
         }
         
        
-      
         double temp;
         double finalTemp;
-        
-        double normMin = 0.0;
-        double normMax = 1.0;
-        
-        //Page rank value normalization to zero to one
-       
-        
         
         //Relevance value normalization to zero to one
         System.out.println("Using W probablity" + wProb);
@@ -149,7 +139,7 @@ public class SearchFiles {
             
             temp = 0.0;
             finalTemp = 0.0;
-            temp = ((pair.getValue() - relMin) / (relMax - relMin)) * (normMin- normMax) + normMin;
+            temp = ((pair.getValue() - relMin) / (relMax - relMin));
             finalTemp = wProb *  pageRankVector[Integer.parseInt(pair.getKey())] + (1-wProb) * temp; 
             pageRankResults.put(pair.getKey(), finalTemp);
         }
@@ -703,22 +693,27 @@ public class SearchFiles {
                 pageRankMax = pageRankVector[i];
             }
             
-            if (pageRankMax > pageRankVector[i])
+            if (pageRankMin > pageRankVector[i])
             {
-                pageRankMax = pageRankVector[i];
+                pageRankMin = pageRankVector[i];
             }
             
         }
-        
+
+        System.out.println("Page Rank before normalizing");
+        System.out.println("Page Rank Max is " + pageRankMax);
+        System.out.println("Page Rank Min is " + pageRankMin);
+
         
         for(int i=0; i<docSize; i++)
         {
             temp = 0.0;
-            temp = ((pageRankVector[i] - pageRankMin) / (pageRankMax - pageRankMin)) * (normMin- normMax) + normMin;
+            temp = (double)(pageRankVector[i] - pageRankMin) / (pageRankMax - pageRankMin);
             pageRankVector[i] = temp;
         }
-        
-        
+
+        pageRankMax = 0.0;
+        pageRankMin = 100000.0;
         
         for(int i=0; i<docSize; i++)
         {
@@ -727,13 +722,14 @@ public class SearchFiles {
                 pageRankMax = pageRankVector[i];
             }
             
-            if (pageRankMax > pageRankVector[i])
+            if (pageRankMin > pageRankVector[i])
             {
-                pageRankMax = pageRankVector[i];
+                pageRankMin = pageRankVector[i];
             }
             
         }
         
+        System.out.println("Page Rank after normalizing");
         System.out.println("Page Rank Max is " + pageRankMax);
         System.out.println("Page Rank Min is " + pageRankMin);
 
