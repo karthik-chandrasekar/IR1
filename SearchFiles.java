@@ -2,6 +2,7 @@ package edu.asu.irs13;
 import org.apache.lucene.index.*;
 import java.util.*;
 import org.apache.lucene.store.*;
+import org.apache.lucene.document.*;
 import java.io.File;
 import java.util.Scanner;
 import java.util.Arrays;
@@ -96,17 +97,20 @@ public class SearchFiles {
                 break;
             topTenSimilarDocs.put(pair.getKey(), pair.getValue());
             System.out.println(pair.getKey());
+            Document d = r.document(Integer.parseInt(pair.getKey()));
+            String url = d.getFieldable("path").stringValue();
+            System.out.println("Url is "+ url.replace("%%", "/"));
         }
         long startTime = System.currentTimeMillis();
-        sObj.computeAuthorityHub(topTenSimilarDocs);
+        sObj.computeAuthorityHub(topTenSimilarDocs, r);
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for Auth and Hubs "+ (double)(endTime - startTime)/1000);
-        sObj.pageRankOrdering(relMap);
+        sObj.pageRankOrdering(relMap, r);
         
     }
 
     
-    public void pageRankOrdering(Map<String, Double> relMap)
+    public void pageRankOrdering(Map<String, Double> relMap, IndexReader r) throws Exception
     {
         Map<String, Double> pageRankResults= new HashMap<String, Double>();
         
@@ -157,12 +161,15 @@ public class SearchFiles {
          {
              loopLimit ++;
              System.out.println(pair.getKey());
-             if (loopLimit == 10)
+             Document d = r.document(Integer.parseInt(pair.getKey()));
+             String url = d.getFieldable("path").stringValue();
+             //System.out.println("Url is "+ url.replace("%%", "/"));
+             if (loopLimit == 20)
                  break;
          }
     }
     
-    public void computeAuthorityHub(Map<String, Double> rootSet) throws Exception
+    public void computeAuthorityHub(Map<String, Double> rootSet, IndexReader r) throws Exception
     {
         LinkAnalyses.numDocs = 25054;
         LinkAnalyses la = new LinkAnalyses();
@@ -426,8 +433,11 @@ public class SearchFiles {
         int authCount = 0;
         for(Map.Entry<String, Double> pair:authSortedMap.entrySet())
         {
-            if (authCount == 10)break;
+            if (authCount == 20)break;
             System.out.println(pair.getKey());
+            Document d = r.document(Integer.parseInt(pair.getKey()));
+            String url = d.getFieldable("path").stringValue();
+            //System.out.println("Url is "+ url.replace("%%", "/"));
             authCount++;
         }
         endTime = System.currentTimeMillis();
@@ -450,8 +460,11 @@ public class SearchFiles {
         int hubCount = 0;
         for(Map.Entry<String, Double> pair:hubSortedMap.entrySet())
         {
-            if (hubCount == 10)break;
+            if (hubCount == 20)break;
             System.out.println(pair.getKey());
+            Document d = r.document(Integer.parseInt(pair.getKey()));
+            String url = d.getFieldable("path").stringValue();
+            //System.out.println("Url is "+ url.replace("%%", "/"));
             hubCount++;
         }
         endTime = System.currentTimeMillis();
@@ -544,7 +557,7 @@ public class SearchFiles {
         System.out.println(sb);
     }
     
-    public void computePageRank(SearchFiles sObj)
+    public void computePageRank(SearchFiles sObj, IndexReader r) throws Exception
     {
         LinkAnalyses.numDocs = 25054;
         LinkAnalyses la = new LinkAnalyses();
@@ -671,38 +684,42 @@ public class SearchFiles {
         
         System.out.println("Total number of iterations taken for page rank convergence - " + convergeCount);
         
-        sObj.normalizePageRank();
+        sObj.normalizePageRank(r);
         
     }
     
     
-    public void normalizePageRank()
+    public void normalizePageRank(IndexReader r) throws Exception
     {
         //Normalize page rank to the limits [0,1]
         
         double temp;
         double pageRankMax = 0.0;
         double pageRankMin = 100000.0;
-        double normMin = 0.0;
-        double normMax = 1.0;
-    
+        int maxPageRankIndex = 0;
+        int minPageRankIndex = 0;
+   
         for(int i=0; i<docSize; i++)
         {
             if (pageRankMax < pageRankVector[i])
             {
                 pageRankMax = pageRankVector[i];
+                maxPageRankIndex = i;
             }
             
             if (pageRankMin > pageRankVector[i])
             {
                 pageRankMin = pageRankVector[i];
+                minPageRankIndex = i;
             }
             
         }
 
+        
         System.out.println("Page Rank before normalizing");
-        System.out.println("Page Rank Max is " + pageRankMax);
-        System.out.println("Page Rank Min is " + pageRankMin);
+        System.out.println("Page Rank Max is " + pageRankMax + "Doc id  - " + maxPageRankIndex);
+        System.out.println("Page Rank Min is " + pageRankMin + "Doc id - " + minPageRankIndex );
+        
 
         
         for(int i=0; i<docSize; i++)
@@ -733,6 +750,10 @@ public class SearchFiles {
         System.out.println("Page Rank Max is " + pageRankMax);
         System.out.println("Page Rank Min is " + pageRankMin);
 
+        Document d = r.document(maxPageRankIndex);
+        String url = d.getFieldable("path").stringValue();
+        System.out.println("Url is "+ url.replace("%%", "/"));
+        
     }
 
  
@@ -745,7 +766,7 @@ public class SearchFiles {
         sObj.getTwoNorm(r, sObj);
         
         //PageRank computation
-        sObj.computePageRank(sObj);
+        sObj.computePageRank(sObj, r);
         sObj.getMemoryUsage();
         System.out.print("Page Rank Computation is overerrrrrr !!!!!");
         
@@ -753,6 +774,7 @@ public class SearchFiles {
         String str = "";
         System.out.print("query> ");
         String [] parts;
+        
         
         while(!(str = sc.nextLine()).equals("quit"))
         {   
