@@ -30,7 +30,6 @@ public class SearchFiles {
     HashMap<Integer, Integer> twoNorm = new HashMap<Integer, Integer>();
     HashMap<Integer, Double> twoNormTfIdf = new HashMap<Integer, Double>();
     int docSize = 25054;
-    double minIdf=100000;
     String minIdfTerm;
     HashMap<Integer, Double> docPageRankMap = new HashMap<Integer, Double>();
     double [] pageRankVector = new double[docSize]; 
@@ -40,7 +39,7 @@ public class SearchFiles {
     
     double wProb = 0.4;
     double cProb = 0.8;
-    int K = 10;
+    int resultsCount = 10;
  
     public void getTwoNorm(IndexReader r, SearchFiles sObj) throws Exception
     {
@@ -49,6 +48,7 @@ public class SearchFiles {
         int freq;
         int totalDocs = r.maxDoc();
         double  Idf;
+        double IdfTemp;
     
         while(t.next())
         {   
@@ -65,7 +65,7 @@ public class SearchFiles {
                 twoNorm.put(td.doc(), freq);
                 
                 
-               double IdfTemp = 0.0;
+               IdfTemp = 0.0;
                if (twoNormTfIdf.containsKey(td.doc()))
                {
                    IdfTemp = twoNormTfIdf.get(td.doc());
@@ -76,15 +76,7 @@ public class SearchFiles {
                twoNormTfIdf.put(td.doc(), IdfTemp);
                 
             }
-            //To find the term with least Idf value
-            Idf = (double)(totalDocs/(double)r.docFreq(t.term()));
-            //System.out.println(t.term().text());
-            if (Idf <= sObj.minIdf)
-            {
-                sObj.minIdf = Idf;
-                sObj.minIdfTerm = t.term().text();
-                System.out.println(sObj.minIdfTerm);
-            }
+           
         }
         long endTime = System.currentTimeMillis();
         System.out.println("Time take for twoNorm compute is "+ (double)(endTime - startTime)/1000);
@@ -106,10 +98,12 @@ public class SearchFiles {
         for(Map.Entry<String, Double> pair : sortedMap.entrySet())
         {
             loopVar++;
-            if(loopVar >K)
+            if(loopVar >resultsCount)
                 break;
             topTenSimilarDocs.put(pair.getKey(), pair.getValue());
-            System.out.println(pair.getKey() + " IDF value is" + pair.getValue() );
+            System.out.println(pair.getKey() + " TfIdf value is " + pair.getValue() );
+            
+            //Get url of the doc id
             Document d = r.document(Integer.parseInt(pair.getKey()));
             String url = d.getFieldable("path").stringValue();
             //System.out.println("Url is "+ url.replace("%%", "/"));
@@ -118,7 +112,7 @@ public class SearchFiles {
         sObj.computeAuthorityHub(topTenSimilarDocs, r);
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for Auth and Hubs "+ (double)(endTime - startTime)/1000);
-        //sObj.pageRankOrdering(relMap, r);
+        sObj.pageRankOrdering(relMap, r);
         
     }
 
@@ -182,12 +176,16 @@ public class SearchFiles {
     
     public void computeAuthorityHub(Map<String, Double> rootSet, IndexReader r) throws Exception
     {
+        long startTime = System.currentTimeMillis();
+
         LinkAnalyses.numDocs = 25054;
         LinkAnalyses la = new LinkAnalyses();
 
         System.out.println("Inside compute Authority Hub");
-        //Form base set - collect both links and citations of root set docs 
+        //Form base set  from the root set
+        
         if (rootSet.isEmpty()) return;
+        
         HashSet<Integer> baseSet = new HashSet<Integer>();       
         for(Map.Entry<String, Double> pair:rootSet.entrySet())
         {
@@ -209,21 +207,19 @@ public class SearchFiles {
         //Creating alias for original doc numbers 
         HashMap<Integer, Integer> origDocToAliasDocMap = new HashMap<Integer, Integer>();
         HashMap<Integer, Integer> aliasDocToOrigDocMap = new HashMap<Integer, Integer>();
+        
+        //Size of base set
         int docCount = baseSet.size();
         System.out.println("Base set" + docCount);
+        
         int count = 0;
-
         for(Integer docNum:baseSet)
         {
             origDocToAliasDocMap.put(docNum, count);
             aliasDocToOrigDocMap.put(count, docNum);
             count ++;
         }
-        
-       // System.out.println("Before adjacency matrix construction");
-        //System.out.println("Base set length" + baseSet.size());
-
-        
+    
         //Adjacency matrix construction
         int [][] adjMatrix = new int[docCount][docCount];
         int [][] adjMatrixTrans = new int[docCount][docCount];
@@ -236,7 +232,6 @@ public class SearchFiles {
         double [] hubTempVector = new double[docCount];       
  
         //Initialize the authVector to 1
-        long startTime = System.currentTimeMillis();
         
         Arrays.fill(authVector, 1.0);
         Arrays.fill(hubVector, 1.0);
@@ -249,7 +244,7 @@ public class SearchFiles {
             {
                 if (baseSet.contains(link) && baseSet.contains(docNum))
                 {
-                    //Getting alias doc number and using it in adj matrix
+                    //Populate adj matrix with alias doc ids
                     docNum = origDocToAliasDocMap.get(docNum);
                     link = origDocToAliasDocMap.get(link);
                     adjMatrix[docNum][link] = 1;
@@ -428,6 +423,7 @@ public class SearchFiles {
         System.out.println("Number of Hub Convergence Iteration " + hubIterationCount);
 
         
+        // -------------Sort and display top K authority results----------------------
         startTime = System.currentTimeMillis();
         // Print top ten authority resutls
         Map<String, Double> AuthResultMap = new HashMap<String, Double>();
@@ -453,8 +449,9 @@ public class SearchFiles {
         }
         endTime = System.currentTimeMillis();
         System.out.println("Time taken to find top ten authority "+ (double)(endTime - startTime)/1000);
-
         
+        
+     // -----------------Sort and display top K hub results----------------------
         startTime = System.currentTimeMillis();
         //Print top ten hub results
         Map<String, Double> HubResultMap = new HashMap<String, Double>();
@@ -518,12 +515,15 @@ public class SearchFiles {
     
     public void orderUsingTfIdf(String str, IndexReader r, SearchFiles sObj, Map<String, Double> relMapTfIdf) throws Exception
     {
+        long startTime = System.currentTimeMillis();
+
+        
         String[] terms = str.split("\\s+");
         int queryLen = terms.length;
         double relTfIdf;
-        long startTime = System.currentTimeMillis();
         double Idf;
         int totalDocs = r.maxDoc();
+        String docid;
    
         
         //Two norm value for doc 871 - check ?
@@ -535,24 +535,26 @@ public class SearchFiles {
         {
             Term term = new Term("contents", word);
             TermDocs tdocs = r.termDocs(term);
+
             while(tdocs.next())
             {
                 if (tdocs.doc() > sObj.docSize)
                 {
                     continue;
                 }
-                relTfIdf = 0;                   
-                if(relMapTfIdf.containsKey(tdocs.doc()))
+                relTfIdf = 0;           
+                docid = Integer.toString(tdocs.doc());
+                if(relMapTfIdf.containsKey(docid))
                 {
-                    relTfIdf = relMapTfIdf.get(tdocs.doc());
+                    relTfIdf = relMapTfIdf.get(docid);
                 }
                 
                 Idf = (double)(totalDocs/(double)r.docFreq(term));
                 Idf = Math.log(Idf)/Math.log(2);
                 //System.out.println("Idf  " + Idf);
                 relTfIdf += (double)(tdocs.freq() * Idf )/((Math.sqrt(queryLen) * Math.sqrt(sObj.twoNormTfIdf.get(tdocs.doc()))));
+                relMapTfIdf.put(docid, relTfIdf);   
                 
-                relMapTfIdf.put(Integer.toString(tdocs.doc()), relTfIdf);       
             }
         }
         System.out.println(" Total number of results of TfIdf " + relMapTfIdf.size());
@@ -781,11 +783,12 @@ public class SearchFiles {
         SearchFiles sObj = new SearchFiles();
         IndexReader r = IndexReader.open(FSDirectory.open(new File("index")));
         
-        //Compute two norm for all the documents in the corpus
+        //Compute two norm for all the documents - Both for Tf and TfIdf
         sObj.getTwoNorm(r, sObj);
+        System.out.println("Two norm value for 845 " + Math.sqrt(sObj.twoNormTfIdf.get(845)));
         
         //PageRank computation
-        //sObj.computePageRank(sObj, r);
+        sObj.computePageRank(sObj, r);
         sObj.getMemoryUsage();
         System.out.print("Page Rank Computation is overerrrrrr !!!!!");
         
@@ -818,7 +821,6 @@ public class SearchFiles {
             
             long endTime = System.currentTimeMillis();
             
-            //System.out.println("Least Idf value is " + sObj.minIdf + " Term is " + sObj.minIdfTerm);
             System.out.println("Time taken to get results "+ (double)(endTime - startTime)/1000);
             System.out.print("query> ");
         }
