@@ -28,6 +28,7 @@ class ValueComparator implements Comparator<String> {
 public class SearchFiles {
     
     HashMap<Integer, Integer> twoNorm = new HashMap<Integer, Integer>();
+    HashMap<Integer, Double> twoNormTfIdf = new HashMap<Integer, Double>();
     int docSize = 25054;
     double minIdf=100000;
     String minIdfTerm;
@@ -62,6 +63,18 @@ public class SearchFiles {
                 }
                 freq += td.freq() * td.freq();
                 twoNorm.put(td.doc(), freq);
+                
+                
+               double IdfTemp = 0.0;
+               if (twoNormTfIdf.containsKey(td.doc()))
+               {
+                   IdfTemp = twoNormTfIdf.get(td.doc());
+               }
+               Idf = (double)(totalDocs/(double)r.docFreq(t.term()));
+               Idf = Math.log(Idf)/Math.log(2);
+               IdfTemp += Idf * Idf;
+               twoNormTfIdf.put(td.doc(), Idf);
+                
             }
             //To find the term with least Idf value
             Idf = (double)(totalDocs/(double)r.docFreq(t.term()));
@@ -96,16 +109,16 @@ public class SearchFiles {
             if(loopVar >K)
                 break;
             topTenSimilarDocs.put(pair.getKey(), pair.getValue());
-            System.out.println(pair.getKey());
+            System.out.println(pair.getKey() + " IDF value is" + pair.getValue() );
             Document d = r.document(Integer.parseInt(pair.getKey()));
             String url = d.getFieldable("path").stringValue();
-            System.out.println("Url is "+ url.replace("%%", "/"));
+            //System.out.println("Url is "+ url.replace("%%", "/"));
         }
         long startTime = System.currentTimeMillis();
         sObj.computeAuthorityHub(topTenSimilarDocs, r);
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for Auth and Hubs "+ (double)(endTime - startTime)/1000);
-        sObj.pageRankOrdering(relMap, r);
+        //sObj.pageRankOrdering(relMap, r);
         
     }
 
@@ -513,6 +526,13 @@ public class SearchFiles {
         long startTime = System.currentTimeMillis();
         double Idf;
         int totalDocs = r.maxDoc();
+   
+        
+        //Two norm value for doc 871 - check ?
+        System.out.println("Two norm value for 871  " + Math.sqrt(twoNorm.get(871)));
+        System.out.println("Two norm value for 845  " + Math.sqrt(twoNorm.get(845)));
+        System.out.println("Two norm value for 88  " + Math.sqrt(twoNorm.get(88)));
+        
         for(String word : terms)
         {
             Term term = new Term("contents", word);
@@ -532,7 +552,8 @@ public class SearchFiles {
                 Idf = (double)(totalDocs/(double)r.docFreq(term));
                 Idf = Math.log(Idf)/Math.log(2);
                 //System.out.println("Idf  " + Idf);
-                relTfIdf += (double)((tdocs.freq() * Idf )/((Math.sqrt(queryLen) * Math.sqrt(sObj.twoNorm.get(tdocs.doc())))));
+                relTfIdf += (double)(tdocs.freq() * Idf )/((Math.sqrt(queryLen) * Math.sqrt(sObj.twoNorm.get(tdocs.doc()))));
+                
                 relMapTfIdf.put(Integer.toString(tdocs.doc()), relTfIdf);       
             }
         }
@@ -766,7 +787,7 @@ public class SearchFiles {
         sObj.getTwoNorm(r, sObj);
         
         //PageRank computation
-        sObj.computePageRank(sObj, r);
+        //sObj.computePageRank(sObj, r);
         sObj.getMemoryUsage();
         System.out.print("Page Rank Computation is overerrrrrr !!!!!");
         
