@@ -71,9 +71,9 @@ public class SearchFiles {
                    IdfTemp = twoNormTfIdf.get(td.doc());
                }
                Idf = (double)(totalDocs/(double)r.docFreq(t.term()));
-               Idf = Math.log(Idf)/Math.log(2);
+               Idf = td.freq() * (Math.log(Idf)/Math.log(2));
                IdfTemp += Idf * Idf;
-               twoNormTfIdf.put(td.doc(), Idf);
+               twoNormTfIdf.put(td.doc(), IdfTemp);
                 
             }
             //To find the term with least Idf value
@@ -129,8 +129,6 @@ public class SearchFiles {
         
         double relMax = 0.0;
         double relMin = 100000.0;
-      
-        
         
         //Find Tf/Idf relavance max and min to normalize
         for(Map.Entry<String, Double> pair:relMap.entrySet())
@@ -552,7 +550,7 @@ public class SearchFiles {
                 Idf = (double)(totalDocs/(double)r.docFreq(term));
                 Idf = Math.log(Idf)/Math.log(2);
                 //System.out.println("Idf  " + Idf);
-                relTfIdf += (double)(tdocs.freq() * Idf )/((Math.sqrt(queryLen) * Math.sqrt(sObj.twoNorm.get(tdocs.doc()))));
+                relTfIdf += (double)(tdocs.freq() * Idf )/((Math.sqrt(queryLen) * Math.sqrt(sObj.twoNormTfIdf.get(tdocs.doc()))));
                 
                 relMapTfIdf.put(Integer.toString(tdocs.doc()), relTfIdf);       
             }
