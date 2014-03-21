@@ -595,13 +595,37 @@ public class SearchFiles {
         return pWordSet.size();
     }
     
+    public int getMinimum(int a, int b, int c)
+    {
+        return Math.min(Math.min(a, b), c);
+    }
+    
+    public int computeLevenDistance(String str1, String str2, SearchFiles sObj)
+    {
+        int[][] distance = new int[str1.length() + 1][str2.length() + 1];
+         
+        for (int i = 0; i <= str1.length(); i++)
+            distance[i][0] = i;
+        for (int j = 1; j <= str2.length(); j++)
+            distance[0][j] = j;
+ 
+        for (int i = 1; i <= str1.length(); i++)
+            for (int j = 1; j <= str2.length(); j++)
+                distance[i][j] = sObj.getMinimum(
+                        distance[i - 1][j] + 1,
+                        distance[i][j - 1] + 1,
+                        distance[i - 1][j - 1]+ ((str1.charAt(i - 1) == str2.charAt(j - 1)) ? 0 : 1));
+ 
+        return distance[str1.length()][str2.length()];    
+    }
+    
     public String handleMisspeltWords(String misSpeltWord, SearchFiles sObj)
     {
         int minDist = 100000;
         String finalWord = "";
         int dist;
         int pLength = misSpeltWord.length();
-        
+        int levenDist = 0;
         
         for(String term:termList)
         {
@@ -616,10 +640,16 @@ public class SearchFiles {
                 continue;
             }
             //System.out.println(term);
-            if(dist == 1)
-            {
+            
+            
+            levenDist = sObj.computeLevenDistance(term, misSpeltWord, sObj);
+            if(levenDist == 1)
+            {   
+                System.out.println("Leven DIstance is LEVEN LEVEN LEVEN " + levenDist);
                 return term;
             }
+                
+            
             if(dist < minDist)
             {
                 minDist = dist;
