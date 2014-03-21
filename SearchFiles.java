@@ -4,8 +4,10 @@ import java.util.*;
 import org.apache.lucene.store.*;
 import org.apache.lucene.document.*;
 import java.io.File;
+import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Arrays;
+import java.util.Set;
 import java.text.NumberFormat;
 
 class ValueComparator implements Comparator<String> {
@@ -32,6 +34,8 @@ public class SearchFiles {
     HashMap<Integer, Integer> twoNorm = new HashMap<Integer, Integer>();
     HashMap<Integer, Double> twoNormTfIdf = new HashMap<Integer, Double>();
     HashMap<Integer, Double> docPageRankMap = new HashMap<Integer, Double>();
+    List<String> termList = new ArrayList<String>();
+    
     double [] pageRankVector = new double[docSize]; 
   
     String minIdfTerm;
@@ -79,15 +83,20 @@ public class SearchFiles {
                Idf = td.freq() * (Math.log(Idf)/Math.log(2));
                IdfTemp += Idf * Idf;
                twoNormTfIdf.put(td.doc(), IdfTemp);
+               
+               //Load all terms in a list
+               termList.add(t.term().text());
                 
             }
         }
         
         long endTime = System.currentTimeMillis();
+        System.out.println(termList);
         System.out.println("Time take for twoNorm compute is "+ (double)(endTime - startTime)/1000);
         
     }
     
+   
     
     public void showResults(Map<String, Double> relMap, IndexReader r, SearchFiles sObj) throws Exception
     {
@@ -115,10 +124,10 @@ public class SearchFiles {
             //System.out.println("Url is "+ url.replace("%%", "/"));
         }
         long startTime = System.currentTimeMillis();
-        sObj.computeAuthorityHub(topTenSimilarDocs, r);
+       // sObj.computeAuthorityHub(topTenSimilarDocs, r);
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for Auth and Hubs "+ (double)(endTime - startTime)/1000);
-        sObj.pageRankOrdering(relMap, r);
+        //sObj.pageRankOrdering(relMap, r);
     }
 
     
@@ -516,6 +525,107 @@ public class SearchFiles {
         System.out.println("Ordering based on Tf results -Time Taken "+ (double)(endTime - startTime)/1000);
     }
     
+    
+    public int findCharDiff(String pWord, String nWord)
+    {
+        
+        System.out.println("Inside finding char diff");
+        Set<Character> pCharSet = new HashSet<Character>();
+        Set<Character> nCharSet = new HashSet<Character>();
+        
+        for(int i=0; i<pWord.length(); i++)
+        {
+            pCharSet.add(pWord.charAt(i));
+        }
+        
+        //System.out.println(pCharSet);
+        
+        for(int i=0; i<nWord.length(); i++)
+        {
+            nCharSet.add(nWord.charAt(i));
+        }
+        //System.out.println(nCharSet);
+
+        pCharSet.removeAll(nCharSet);
+        System.out.println(pCharSet);
+        if (pCharSet.size() < 2)
+        {
+            return 1;
+        }
+        
+        return 0;
+    }
+    
+    public int  findWordDist(String pWord, String nWord, SearchFiles sObj)
+    {
+        
+        if (sObj.findCharDiff(pWord, nWord) == 0)
+        {
+            return 1000;
+        }
+        
+        //Find the  distance between two words
+        
+        Set<String> pWordSet = new HashSet<String>();
+        Set<String> nWordSet = new HashSet<String>();
+        
+        String temp;
+        for(int i=0; i+1<pWord.length(); i++)
+        {
+        temp = pWord.substring(i, i+2);
+        pWordSet.add(temp);
+        }
+        //System.out.println(pWordSet);
+        
+        for(int i=0; i+1<nWord.length(); i++)
+        {
+            temp = nWord.substring(i, i+2);
+            nWordSet.add(temp);
+        }
+        //System.out.println(nWordSet);
+        
+        pWordSet.removeAll(nWordSet);
+        //System.out.println(pWordSet);
+
+        //System.out.println(pWordSet.size());
+        return pWordSet.size();
+    }
+    
+    public String handleMisspeltWords(String misSpeltWord, SearchFiles sObj)
+    {
+        int minDist = 100000;
+        String finalWord = "";
+        int dist;
+        int pLength = misSpeltWord.length();
+        
+        
+        for(String term:termList)
+        {
+            
+            System.out.println(term);
+            if(term.length() != pLength)
+            {
+                continue;
+            }
+            dist =  sObj.findWordDist(term, misSpeltWord, sObj);
+            if(dist == 1000)
+            {
+                continue;
+            }
+            System.out.println(term);
+            if((dist == 1) && (Math.abs(misSpeltWord.length() - term.length()) <2))
+            {
+                return term;
+            }
+            if(dist < minDist)
+            {
+                minDist = dist;
+                finalWord = term;
+            }
+        }
+        return finalWord;
+    }
+    
     public void orderUsingTfIdf(String str, IndexReader r, SearchFiles sObj, Map<String, Double> relMapTfIdf) throws Exception
     {
         long startTime = System.currentTimeMillis();
@@ -532,6 +642,13 @@ public class SearchFiles {
         {
             Term term = new Term("contents", word);
             TermDocs tdocs = r.termDocs(term);
+            
+            //Handling misspelt words
+            if(!sObj.termList.contains(term))
+            {
+                System.out.println("No match found for this word");
+                word = sObj.handleMisspeltWords(word, sObj);
+            }
 
             while(tdocs.next())
             {
@@ -781,9 +898,10 @@ public class SearchFiles {
         System.out.println("Two norm value for 845 " + Math.sqrt(sObj.twoNormTfIdf.get(845)));
         
         //PageRank computation
-        sObj.computePageRank(sObj, r);
+        //sObj.computePageRank(sObj, r);
         sObj.getMemoryUsage();
         System.out.print("Page Rank Computation is overerrrrrr !!!!!");
+        
         
         Scanner sc = new Scanner(System.in);
         String str = "";
