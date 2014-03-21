@@ -85,13 +85,12 @@ public class SearchFiles {
                twoNormTfIdf.put(td.doc(), IdfTemp);
                
                //Load all terms in a list
-               termList.add(t.term().text());
-                
+         
             }
+            termList.add(t.term().text());
         }
         
         long endTime = System.currentTimeMillis();
-        System.out.println(termList);
         System.out.println("Time take for twoNorm compute is "+ (double)(endTime - startTime)/1000);
         
     }
@@ -529,7 +528,7 @@ public class SearchFiles {
     public int findCharDiff(String pWord, String nWord)
     {
         
-        System.out.println("Inside finding char diff");
+        //System.out.println("Inside finding char diff");
         Set<Character> pCharSet = new HashSet<Character>();
         Set<Character> nCharSet = new HashSet<Character>();
         
@@ -546,8 +545,13 @@ public class SearchFiles {
         }
         //System.out.println(nCharSet);
 
+        if(Math.abs(pCharSet.size() - nCharSet.size()) > 2)
+        {
+            return 0;
+        }
+        
         pCharSet.removeAll(nCharSet);
-        System.out.println(pCharSet);
+        //System.out.println(pCharSet);
         if (pCharSet.size() < 2)
         {
             return 1;
@@ -601,8 +605,7 @@ public class SearchFiles {
         
         for(String term:termList)
         {
-            
-            System.out.println(term);
+            //System.out.println(term);
             if(term.length() != pLength)
             {
                 continue;
@@ -612,8 +615,8 @@ public class SearchFiles {
             {
                 continue;
             }
-            System.out.println(term);
-            if((dist == 1) && (Math.abs(misSpeltWord.length() - term.length()) <2))
+            //System.out.println(term);
+            if(dist == 1)
             {
                 return term;
             }
@@ -644,10 +647,13 @@ public class SearchFiles {
             TermDocs tdocs = r.termDocs(term);
             
             //Handling misspelt words
-            if(!sObj.termList.contains(term))
+            if(!sObj.termList.contains(word))
             {
                 System.out.println("No match found for this word");
                 word = sObj.handleMisspeltWords(word, sObj);
+                System.out.println("DID YOU MEAN " + word);
+                term = new Term("contents", word);
+                tdocs = r.termDocs(term);
             }
 
             while(tdocs.next())
