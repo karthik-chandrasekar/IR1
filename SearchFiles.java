@@ -27,13 +27,14 @@ class ValueComparator implements Comparator<String> {
 
 public class SearchFiles {
     
+    int docSize = 25054;
+    
     HashMap<Integer, Integer> twoNorm = new HashMap<Integer, Integer>();
     HashMap<Integer, Double> twoNormTfIdf = new HashMap<Integer, Double>();
-    int docSize = 25054;
-    String minIdfTerm;
     HashMap<Integer, Double> docPageRankMap = new HashMap<Integer, Double>();
     double [] pageRankVector = new double[docSize]; 
   
+    String minIdfTerm;
     int maxPageRankIndex=0;
     int minPageRankIndex=0;
     
@@ -43,7 +44,11 @@ public class SearchFiles {
  
     public void getTwoNorm(IndexReader r, SearchFiles sObj) throws Exception
     {
+        
+        //Find two norm values for Tf and TfIdf
+        
         long startTime = System.currentTimeMillis();
+        
         TermEnum t = r.terms();
         int freq;
         int totalDocs = r.maxDoc();
@@ -76,10 +81,11 @@ public class SearchFiles {
                twoNormTfIdf.put(td.doc(), IdfTemp);
                 
             }
-           
         }
+        
         long endTime = System.currentTimeMillis();
         System.out.println("Time take for twoNorm compute is "+ (double)(endTime - startTime)/1000);
+        
     }
     
     
@@ -113,7 +119,6 @@ public class SearchFiles {
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for Auth and Hubs "+ (double)(endTime - startTime)/1000);
         sObj.pageRankOrdering(relMap, r);
-        
     }
 
     
@@ -136,16 +141,14 @@ public class SearchFiles {
                 relMin = pair.getValue();
             }
         }
-        
-       
+             
         double temp;
         double finalTemp;
         
-        //Relevance value normalization to zero to one
+        //Relevance value normalization to the interval [0,1] 
         System.out.println("Using W probablity" + wProb);
         for(Map.Entry<String, Double> pair:relMap.entrySet())
-        {
-            
+        {           
             temp = 0.0;
             finalTemp = 0.0;
             temp = ((pair.getValue() - relMin) / (relMax - relMin));
@@ -236,7 +239,7 @@ public class SearchFiles {
         Arrays.fill(authVector, 1.0);
         Arrays.fill(hubVector, 1.0);
         
-
+        //Adjacency matrix construction
         for(Integer docNum:baseSet)
         {
             int links[] = la.getLinks(docNum);
@@ -517,19 +520,13 @@ public class SearchFiles {
     {
         long startTime = System.currentTimeMillis();
 
-        
         String[] terms = str.split("\\s+");
         int queryLen = terms.length;
         double relTfIdf;
         double Idf;
         int totalDocs = r.maxDoc();
         String docid;
-   
-        
-        //Two norm value for doc 871 - check ?
-        System.out.println("Two norm value for 871  " + Math.sqrt(twoNorm.get(871)));
-        System.out.println("Two norm value for 845  " + Math.sqrt(twoNorm.get(845)));
-        System.out.println("Two norm value for 88  " + Math.sqrt(twoNorm.get(88)));
+     
         
         for(String word : terms)
         {
@@ -565,8 +562,8 @@ public class SearchFiles {
    
     public void getMemoryUsage()
     {
+        // To find the current memeory usage
         Runtime runtime = Runtime.getRuntime();
-
         NumberFormat format = NumberFormat.getInstance();
 
         StringBuilder sb = new StringBuilder();
@@ -580,6 +577,11 @@ public class SearchFiles {
     
     public void computePageRank(SearchFiles sObj, IndexReader r) throws Exception
     {
+        
+        //Page rank ordering
+        long startTime = System.currentTimeMillis();
+        getMemoryUsage();
+
         LinkAnalyses.numDocs = 25054;
         LinkAnalyses la = new LinkAnalyses();
 
@@ -588,7 +590,6 @@ public class SearchFiles {
         double sinkValue = (double)1/docCount;
         double kValue = (double)(1-cProb) * sinkValue;
         double temp = 0;
-      
 
         double [] tempPageRankVector = new double[docCount];
         double [] markovMatrix = new double[docCount];
@@ -597,7 +598,7 @@ public class SearchFiles {
         int [] column = new int[docCount];
 
         Map<Integer, Integer> nonZeroCountHash = new HashMap<Integer, Integer>();
-        getMemoryUsage();
+        
 
         //Setting initial page rank vector values to be 1
         Arrays.fill(pageRankVector, sinkValue);
@@ -612,40 +613,33 @@ public class SearchFiles {
             {
                 nonZeroCount = column.length;
             }
-            column = new int[docCount];
             nonZeroCountHash.put(i, nonZeroCount);
+            column = new int[docCount];
         }
  
         
         int converge = 0;
         int convergeCount = 0;
         
+        //Page rank power iteration
         while(converge == 0)
         {
             convergeCount++;
-            //maxIteration++;
-            /*if(maxIteration == 2)
-            {
-                break;
-            }*/
-            
+         
             //Single matrix * vector multiplication
             System.out.println("Trying to converge");
             for(int i=0; i < docCount; i++)
             {
-                /*if (i ==10)
-                {
-                    break;
-                }*/
+           
                 tempRow = la.getCitations(i);
                 Arrays.fill(row, 0);
                 
                 //populate the row with non zero values
                 if (tempRow != null)
                 {
-                    for(int m=0; m<tempRow.length; m++)
+                    for(int tRow:tempRow)
                     {
-                        row[tempRow[m]] = 1;
+                        row[tRow] = 1;
                     }
                 }
                 tempRow = new int[docCount];
@@ -664,17 +658,16 @@ public class SearchFiles {
                     }
                 } 
 
-                //row * page rank vector 
+                //markovMatrix row  * page rank vector 
                 for(int l=0; l<docCount; l++)
                 {
-                   temp += markovMatrix[l]*pageRankVector[l]; 
+                   temp += markovMatrix[l] * pageRankVector[l]; 
                 }
                 tempPageRankVector[i] = temp;
                  
                 //System.out.println("Index " + i + " value " + temp);
                 temp = 0; 
             }
-
 
             double threshold = 0.001;
             double diff;
@@ -712,7 +705,7 @@ public class SearchFiles {
     
     public void normalizePageRank(IndexReader r) throws Exception
     {
-        //Normalize page rank to the limits [0,1]
+        //Normalize page rank to the limit [0,1]
         
         double temp;
         double pageRankMax = 0.0;
