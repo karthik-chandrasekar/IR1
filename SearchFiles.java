@@ -32,7 +32,6 @@ public class SearchFiles {
     int docSize = 25054;
     
     IndexReader r;
-
     
     HashMap<Integer, Integer> twoNorm = new HashMap<Integer, Integer>();
     HashMap<Integer, Double> twoNormTfIdf = new HashMap<Integer, Double>();
@@ -44,6 +43,7 @@ public class SearchFiles {
     String minIdfTerm;
     int maxPageRankIndex=0;
     int minPageRankIndex=0;
+    double pageRankThreshold = 0.00001;
     
     double wProb = 0.4;
     double cProb = 0.8;
@@ -97,9 +97,7 @@ public class SearchFiles {
         System.out.println("Time take for twoNorm compute is "+ (double)(endTime - startTime)/1000);
         
     }
-    
    
-    
     public void showResults(Map<String, Double> relMap, IndexReader r, SearchFiles sObj) throws Exception
     {
         
@@ -126,7 +124,7 @@ public class SearchFiles {
             //System.out.println("Url is "+ url.replace("%%", "/"));
         }
         long startTime = System.currentTimeMillis();
-       // sObj.computeAuthorityHub(topTenSimilarDocs, r);
+       //sObj.computeAuthorityHub(topTenSimilarDocs, r);
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for Auth and Hubs "+ (double)(endTime - startTime)/1000);
         //sObj.pageRankOrdering(relMap, r);
@@ -179,7 +177,7 @@ public class SearchFiles {
          for(Map.Entry<String, Double> pair:sortedMap.entrySet())
          {
              loopLimit ++;
-             System.out.println(pair.getKey());
+             System.out.println(pair.getKey() + " " + pair.getValue());
              Document d = r.document(Integer.parseInt(pair.getKey()));
              String url = d.getFieldable("path").stringValue();
              //System.out.println("Url is "+ url.replace("%%", "/"));
@@ -218,7 +216,7 @@ public class SearchFiles {
             }
         }
         
-        //Creating alias for original doc numbers 
+        //Data structures to store alias for original doc numbers 
         HashMap<Integer, Integer> origDocToAliasDocMap = new HashMap<Integer, Integer>();
         HashMap<Integer, Integer> aliasDocToOrigDocMap = new HashMap<Integer, Integer>();
         
@@ -234,7 +232,7 @@ public class SearchFiles {
             count ++;
         }
     
-        //Adjacency matrix construction
+        //Adjacency matrix data structures
         int [][] adjMatrix = new int[docCount][docCount];
         int [][] adjMatrixTrans = new int[docCount][docCount];
         int [][] authMatrix = new int[docCount][docCount];
@@ -454,8 +452,8 @@ public class SearchFiles {
         int authCount = 0;
         for(Map.Entry<String, Double> pair:authSortedMap.entrySet())
         {
-            if (authCount == 20)break;
-            System.out.println(pair.getKey());
+            if (authCount == 10)break;
+            System.out.println(pair.getKey() + "  " + pair.getValue());
             Document d = r.document(Integer.parseInt(pair.getKey()));
             String url = d.getFieldable("path").stringValue();
             //System.out.println("Url is "+ url.replace("%%", "/"));
@@ -482,8 +480,8 @@ public class SearchFiles {
         int hubCount = 0;
         for(Map.Entry<String, Double> pair:hubSortedMap.entrySet())
         {
-            if (hubCount == 20)break;
-            System.out.println(pair.getKey());
+            if (hubCount == 10)break;
+            System.out.println(pair.getKey() + "  " + pair.getValue());
             Document d = r.document(Integer.parseInt(pair.getKey()));
             String url = d.getFieldable("path").stringValue();
             //System.out.println("Url is "+ url.replace("%%", "/"));
@@ -531,6 +529,8 @@ public class SearchFiles {
     public int findCharDiff(String pWord, String nWord)
     {
         
+        //Unigram intersection check
+        
         //System.out.println("Inside finding char diff");
         Set<Character> pCharSet = new HashSet<Character>();
         Set<Character> nCharSet = new HashSet<Character>();
@@ -565,6 +565,8 @@ public class SearchFiles {
     
     public int  findWordDist(String pWord, String nWord, SearchFiles sObj)
     {
+        
+        //Bigram intersection check
         
         if (sObj.findCharDiff(pWord, nWord) == 0)
         {
@@ -657,11 +659,14 @@ public class SearchFiles {
         int pLength = misSpeltWord.length();
         int levenDist = 0;
         Set<String> possibleCand = new HashSet<String>();
+        Set<String> secondaryCand = new HashSet<String>();
         
         for(String term:termList)
         {
             //System.out.println(term);
-            if(term.length() != pLength)
+            
+            //Length check
+            if(Math.abs(term.length() - pLength)>3)
             {
                 continue;
             }
@@ -676,12 +681,22 @@ public class SearchFiles {
             levenDist = sObj.computeLevenDistance(term, misSpeltWord, sObj);
             if(levenDist == 1)
             {   
-                System.out.println("Leven DIstance is LEVEN LEVEN LEVEN " + levenDist);
+                System.out.println("Leven DIstance is LEVEN LEVEN LEVEN" + levenDist);
                 possibleCand.add(term);
             }   
+            if(levenDist == 2)
+            {
+                System.out.println("Leven DIstance is LEVEN LEVEN LEVEN - 2" + levenDist);
+                secondaryCand.add(term);
+            }
             
         }
         finalWord = sObj.findBestWord(possibleCand);
+        if(finalWord == "")
+        {
+            System.out.println("Trying to find best word in secondary cand");
+            finalWord = sObj.findBestWord(secondaryCand);
+        }
         return finalWord;
     }
     
@@ -776,8 +791,7 @@ public class SearchFiles {
         int [] tempRow = new int[docCount];
         int [] column = new int[docCount];
 
-        Map<Integer, Integer> nonZeroCountHash = new HashMap<Integer, Integer>();
-        
+        Map<Integer, Integer> nonZeroCountHash = new HashMap<Integer, Integer>();       
 
         //Setting initial page rank vector values to be 1
         Arrays.fill(pageRankVector, sinkValue);
@@ -787,16 +801,12 @@ public class SearchFiles {
         {
             nonZeroCount = 0;
             column = la.getLinks(i);
-            
-            if (column != null)
-            {
-                nonZeroCount = column.length;
-            }
+        
+            nonZeroCount = column.length;
             nonZeroCountHash.put(i, nonZeroCount);
             column = new int[docCount];
         }
- 
-        
+
         int converge = 0;
         int convergeCount = 0;
         
@@ -806,21 +816,19 @@ public class SearchFiles {
             convergeCount++;
          
             //Single matrix * vector multiplication
-            System.out.println("Trying to converge");
+            System.out.println("Trying to converge  " + convergeCount);
             for(int i=0; i < docCount; i++)
             {
-           
                 tempRow = la.getCitations(i);
                 Arrays.fill(row, 0);
                 
                 //populate the row with non zero values
-                if (tempRow != null)
+               
+                for(int tRow:tempRow)
                 {
-                    for(int tRow:tempRow)
-                    {
-                        row[tRow] = 1;
-                    }
+                    row[tRow] = 1;
                 }
+                
                 tempRow = new int[docCount];
                 
                 for(int j=0; j < docCount; j++)
@@ -848,7 +856,7 @@ public class SearchFiles {
                 temp = 0; 
             }
 
-            double threshold = 0.001;
+            
             double diff;
 
             //Checking for convergence
@@ -856,7 +864,7 @@ public class SearchFiles {
             {
                 diff = Math.abs(tempPageRankVector[i] - pageRankVector[i]);
                 
-                if(diff <= threshold || diff == 0)
+                if(diff <= sObj.pageRankThreshold || diff == 0)
                 {
                     converge = 1;
                 }
@@ -912,9 +920,7 @@ public class SearchFiles {
         System.out.println("Page Rank before normalizing");
         System.out.println("Page Rank Max is " + pageRankMax + "Doc id  - " + maxPageRankIndex);
         System.out.println("Page Rank Min is " + pageRankMin + "Doc id - " + minPageRankIndex );
-        
-
-        
+      
         for(int i=0; i<docSize; i++)
         {
             temp = 0.0;
@@ -930,18 +936,22 @@ public class SearchFiles {
             if (pageRankMax < pageRankVector[i])
             {
                 pageRankMax = pageRankVector[i];
+                maxPageRankIndex = i;
+
             }
             
             if (pageRankMin > pageRankVector[i])
             {
                 pageRankMin = pageRankVector[i];
+                minPageRankIndex = i;
+
             }
             
         }
         
         System.out.println("Page Rank after normalizing");
-        System.out.println("Page Rank Max is " + pageRankMax);
-        System.out.println("Page Rank Min is " + pageRankMin);
+        System.out.println("Page Rank Max is " + pageRankMax + "Doc id  - " + maxPageRankIndex);
+        System.out.println("Page Rank Min is " + pageRankMin + "Doc id - " + minPageRankIndex );
 
         Document d = r.document(maxPageRankIndex);
         String url = d.getFieldable("path").stringValue();
@@ -960,7 +970,7 @@ public class SearchFiles {
         System.out.println("Two norm value for 845 " + Math.sqrt(sObj.twoNormTfIdf.get(845)));
         
         //PageRank computation
-        //sObj.computePageRank(sObj, r);
+        sObj.computePageRank(sObj, sObj.r);
         sObj.getMemoryUsage();
         System.out.print("Page Rank Computation is overerrrrrr !!!!!");
         
