@@ -31,6 +31,9 @@ public class SearchFiles {
     
     int docSize = 25054;
     
+    IndexReader r;
+
+    
     HashMap<Integer, Integer> twoNorm = new HashMap<Integer, Integer>();
     HashMap<Integer, Double> twoNormTfIdf = new HashMap<Integer, Double>();
     HashMap<Integer, Double> docPageRankMap = new HashMap<Integer, Double>();
@@ -619,13 +622,41 @@ public class SearchFiles {
         return distance[str1.length()][str2.length()];    
     }
     
-    public String handleMisspeltWords(String misSpeltWord, SearchFiles sObj)
+    public String findBestWord(Set<String> possibleCand) throws Exception
     {
+        System.out.println("Find best word");
+        int maxFreq = 0, freq=0;
+        String bestWord="";
+        
+        for(String word : possibleCand)
+        {
+            Term term = new Term("contents", word);
+            TermDocs tdocs = r.termDocs(term);
+            freq = 0;
+            while(tdocs.next())
+            {
+                freq += tdocs.freq();
+            }
+            if(freq > maxFreq)
+            {
+                maxFreq = freq;
+                bestWord = word;
+            }
+        }
+        
+        return bestWord;
+    }
+    
+    public String handleMisspeltWords(String misSpeltWord, SearchFiles sObj) throws Exception
+    {
+        System.out.println("Handle Misspelt words");
+
         int minDist = 100000;
         String finalWord = "";
         int dist;
         int pLength = misSpeltWord.length();
         int levenDist = 0;
+        Set<String> possibleCand = new HashSet<String>();
         
         for(String term:termList)
         {
@@ -646,16 +677,11 @@ public class SearchFiles {
             if(levenDist == 1)
             {   
                 System.out.println("Leven DIstance is LEVEN LEVEN LEVEN " + levenDist);
-                return term;
-            }
-                
+                possibleCand.add(term);
+            }   
             
-            if(dist < minDist)
-            {
-                minDist = dist;
-                finalWord = term;
-            }
         }
+        finalWord = sObj.findBestWord(possibleCand);
         return finalWord;
     }
     
@@ -927,10 +953,10 @@ public class SearchFiles {
     public static void main(String[] args) throws Exception
     {
         SearchFiles sObj = new SearchFiles();
-        IndexReader r = IndexReader.open(FSDirectory.open(new File("index")));
+        sObj.r = IndexReader.open(FSDirectory.open(new File("index")));
         
         //Compute two norm for all the documents - Both for Tf and TfIdf
-        sObj.getTwoNorm(r, sObj);
+        sObj.getTwoNorm(sObj.r, sObj);
         System.out.println("Two norm value for 845 " + Math.sqrt(sObj.twoNormTfIdf.get(845)));
         
         //PageRank computation
@@ -964,7 +990,7 @@ public class SearchFiles {
                     
             // TfIdf ordering of results
             HashMap<String, Double> relMapTfIdf = new HashMap<String, Double>();        
-            sObj.orderUsingTfIdf(str, r, sObj, relMapTfIdf);
+            sObj.orderUsingTfIdf(str, sObj.r, sObj, relMapTfIdf);
             
             long endTime = System.currentTimeMillis();
             
