@@ -40,6 +40,8 @@ public class KarthikProject3Servlet extends HttpServlet {
         String Query = request.getParameter("Query");
         String method = "";
         StringBuilder outputBuf = new StringBuilder();
+        //String localFilePath = "/Users/karthikchandrasekar/Downloads/temp/result3";
+        //String filePath = "";
         
         List<String> results = new ArrayList<String>();
         
@@ -72,18 +74,25 @@ public class KarthikProject3Servlet extends HttpServlet {
                 results = sObj.servletCall(Query, method);
                 
                 out.println("Size of returned list is" + results.size());
+                
+                outputBuf.append("<html>");
+                outputBuf.append("<body>");
+
                 for(String result : results)
                 {
-                    out.println(result);
-                    
-                    outputBuf.append(result + "      ");
-                    outputBuf.append("\n");
-                    outputBuf.append(System.getProperty("line.separator"));
+                    //out.println(result);
+                    //filePath = localFilePath + result;
+                    //outputBuf.append("<a href="+filePath+">" + result + "</a>");
+                    outputBuf.append("<p>"+result+"</p1>");
                 }
                 
                 out.println("results are about to come");
+                outputBuf.append("</body>");
+                outputBuf.append("</html>");
+
                 request.setAttribute("result", outputBuf.toString());
                 request.getRequestDispatcher("/ShowAll.jsp").forward(request, response);
+                
             }
             catch(Exception e)
             {
