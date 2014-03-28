@@ -38,16 +38,23 @@ public class SearchFiles {
     HashMap<Integer, Double> docPageRankMap = new HashMap<Integer, Double>();
     List<String> termList = new ArrayList<String>();
     
+    //Results
+    List<String> TfIdfResults = new ArrayList<String>();
+    List<String> PageRankResults = new ArrayList<String>();
+    List<String> AHResults = new ArrayList<String>();
+    
+    String indexPath = "/Users/karthikchandrasekar/Desktop/SecondSem/IR/Project1/irs13/index";
+    
     double [] pageRankVector = new double[docSize]; 
   
     String minIdfTerm;
     int maxPageRankIndex=0;
     int minPageRankIndex=0;
-    double pageRankThreshold = 0.000001;
+    double pageRankThreshold = 0.00001;
     
     double wProb = 0.4;
-    double cProb = 0.8;
-    int resultsCount = 50;
+    double cProb = 0.4;
+    int resultsCount = 10;
  
     public void getTwoNorm(IndexReader r, SearchFiles sObj) throws Exception
     {
@@ -120,18 +127,19 @@ public class SearchFiles {
             //Get url of the doc id
             Document d = r.document(Integer.parseInt(pair.getKey()));
             String url = d.getFieldable("path").stringValue();
+            sObj.TfIdfResults.add(url);
             System.out.println(pair.getKey() + " - " + url.replace("%%", "/"));
 
         }
         long startTime = System.currentTimeMillis();
-        sObj.computeAuthorityHub(topTenSimilarDocs, r);
+        sObj.computeAuthorityHub(topTenSimilarDocs, r, sObj);
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for Auth and Hubs "+ (double)(endTime - startTime)/1000);
-        sObj.pageRankOrdering(relMap, r);
+        sObj.pageRankOrdering(relMap, r, sObj);
     }
 
     
-    public void pageRankOrdering(Map<String, Double> relMap, IndexReader r) throws Exception
+    public void pageRankOrdering(Map<String, Double> relMap, IndexReader r, SearchFiles sObj) throws Exception
     {
         Map<String, Double> pageRankResults= new HashMap<String, Double>();
         
@@ -179,13 +187,15 @@ public class SearchFiles {
              loopLimit ++;
              Document d = r.document(Integer.parseInt(pair.getKey()));
              String url = d.getFieldable("path").stringValue();
-             System.out.println(pair.getKey() + " - " + url.replace("%%", "/"));
+             sObj.PageRankResults.add(url);
+             //System.out.println(pair.getKey() + " - " + url.replace("%%", "/"));
+             System.out.println(pair.getKey());
              if (loopLimit == resultsCount)
                  break;
          }
     }
     
-    public void computeAuthorityHub(Map<String, Double> rootSet, IndexReader r) throws Exception
+    public void computeAuthorityHub(Map<String, Double> rootSet, IndexReader r, SearchFiles sObj) throws Exception
     {
         long startTime = System.currentTimeMillis();
 
@@ -454,6 +464,7 @@ public class SearchFiles {
             if (authCount == 10)break;
             Document d = r.document(Integer.parseInt(pair.getKey()));
             String url = d.getFieldable("path").stringValue();
+            sObj.AHResults.add(url);
             System.out.println(pair.getKey() + " - " + url.replace("%%", "/"));
             authCount++;
         }
@@ -481,6 +492,7 @@ public class SearchFiles {
             if (hubCount == 10)break;
             Document d = r.document(Integer.parseInt(pair.getKey()));
             String url = d.getFieldable("path").stringValue();
+            sObj.AHResults.add(url);
             System.out.println(pair.getKey() + " - " + url.replace("%%", "/"));
             hubCount++;
         }
@@ -776,6 +788,7 @@ public class SearchFiles {
         int nonZeroCount = 0;
         double sinkValue = (double)1/docCount;
         double kValue = (double)(1-cProb) * sinkValue;
+        System.out.println("C prob is " + cProb );
         double temp = 0;
 
         double [] tempPageRankVector = new double[docCount];
@@ -952,6 +965,61 @@ public class SearchFiles {
        
     }
 
+    
+    public  List<String> servletCall(String query, String method) throws Exception
+    {
+        System.out.print("Inside sevletCalllll - beginning");
+        System.out.print("Query "+ query + "method " + method );
+        SearchFiles sObj = new SearchFiles();
+        sObj.r = IndexReader.open(FSDirectory.open(new File(indexPath)));
+        
+        //Compute two norm for all the documents - Both for Tf and TfIdf
+        sObj.getTwoNorm(sObj.r, sObj);
+        System.out.println("Two norm value for 845 " + Math.sqrt(sObj.twoNormTfIdf.get(845)));
+        
+        //PageRank computation
+        sObj.computePageRank(sObj, sObj.r);
+        sObj.getMemoryUsage();
+        System.out.print("Page Rank Computation is overerrrrrr !!!!!");
+        
+        
+        String str = query;
+        
+            long startTime = System.currentTimeMillis();
+            str = str.toLowerCase();
+           
+            HashMap<String, Double> relMapTfIdf = new HashMap<String, Double>();        
+            sObj.orderUsingTfIdf(str, sObj.r, sObj, relMapTfIdf);
+            
+            long endTime = System.currentTimeMillis();
+            
+            System.out.println("Time taken to get results "+ (double)(endTime - startTime)/1000);
+      
+            System.out.println("Query "+ query + " method " + method );    
+        if(method.equals("PR"))
+        {
+            System.out.println("Inside PR method");
+            System.out.println("Returning results of size " + sObj.PageRankResults.size());
+            return sObj.PageRankResults;
+        }
+        else if (method.equals("AH"))
+        {
+            System.out.println("Inside AH method");
+            System.out.println("Returning results of size " + sObj.AHResults.size());
+            return sObj.AHResults;
+        }
+        else if (method.equals("VS"))
+        {
+            System.out.println("Inside VS method");
+            System.out.println("Returning results of size " + sObj.TfIdfResults.size());
+            return sObj.TfIdfResults;
+        }
+            
+       System.out.print("Inside sevletCalllll - end");
+       return new ArrayList<String>();  
+
+    }
+    
  
     public static void main(String[] args) throws Exception
     {
