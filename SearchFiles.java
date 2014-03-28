@@ -47,7 +47,7 @@ public class SearchFiles {
     
     double wProb = 0.4;
     double cProb = 0.8;
-    int resultsCount = 10;
+    int resultsCount = 50;
  
     public void getTwoNorm(IndexReader r, SearchFiles sObj) throws Exception
     {
@@ -116,15 +116,15 @@ public class SearchFiles {
             if(loopVar >resultsCount)
                 break;
             topTenSimilarDocs.put(pair.getKey(), pair.getValue());
-            System.out.println(pair.getKey() + " TfIdf value is " + pair.getValue() );
             
             //Get url of the doc id
             Document d = r.document(Integer.parseInt(pair.getKey()));
             String url = d.getFieldable("path").stringValue();
-            //System.out.println("Url is "+ url.replace("%%", "/"));
+            System.out.println(pair.getKey() + " - " + url.replace("%%", "/"));
+
         }
         long startTime = System.currentTimeMillis();
-       //sObj.computeAuthorityHub(topTenSimilarDocs, r);
+        sObj.computeAuthorityHub(topTenSimilarDocs, r);
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for Auth and Hubs "+ (double)(endTime - startTime)/1000);
         //sObj.pageRankOrdering(relMap, r);
@@ -177,11 +177,10 @@ public class SearchFiles {
          for(Map.Entry<String, Double> pair:sortedMap.entrySet())
          {
              loopLimit ++;
-             System.out.println(pair.getKey() + " " + pair.getValue());
              Document d = r.document(Integer.parseInt(pair.getKey()));
              String url = d.getFieldable("path").stringValue();
-             //System.out.println("Url is "+ url.replace("%%", "/"));
-             if (loopLimit == 20)
+             System.out.println(pair.getKey() + " - " + url.replace("%%", "/"));
+             if (loopLimit == resultsCount)
                  break;
          }
     }
@@ -222,7 +221,7 @@ public class SearchFiles {
         
         //Size of base set
         int docCount = baseSet.size();
-        System.out.println("Base set" + docCount);
+        System.out.println("Base set  " + docCount);
         
         int count = 0;
         for(Integer docNum:baseSet)
@@ -453,10 +452,9 @@ public class SearchFiles {
         for(Map.Entry<String, Double> pair:authSortedMap.entrySet())
         {
             if (authCount == 10)break;
-            System.out.println(pair.getKey() + "  " + pair.getValue());
             Document d = r.document(Integer.parseInt(pair.getKey()));
             String url = d.getFieldable("path").stringValue();
-            //System.out.println("Url is "+ url.replace("%%", "/"));
+            System.out.println(pair.getKey() + " - " + url.replace("%%", "/"));
             authCount++;
         }
         endTime = System.currentTimeMillis();
@@ -481,10 +479,9 @@ public class SearchFiles {
         for(Map.Entry<String, Double> pair:hubSortedMap.entrySet())
         {
             if (hubCount == 10)break;
-            System.out.println(pair.getKey() + "  " + pair.getValue());
             Document d = r.document(Integer.parseInt(pair.getKey()));
             String url = d.getFieldable("path").stringValue();
-            //System.out.println("Url is "+ url.replace("%%", "/"));
+            System.out.println(pair.getKey() + " - " + url.replace("%%", "/"));
             hubCount++;
         }
         endTime = System.currentTimeMillis();
@@ -570,7 +567,7 @@ public class SearchFiles {
         
         if (sObj.findCharDiff(pWord, nWord) == 0)
         {
-            return 1000;
+            return -1;
         }
         
         //Find the  distance between two words
@@ -651,7 +648,6 @@ public class SearchFiles {
     
     public String handleMisspeltWords(String misSpeltWord, SearchFiles sObj) throws Exception
     {
-        System.out.println("Handle Misspelt words");
 
         int minDist = 100000;
         String finalWord = "";
@@ -671,7 +667,7 @@ public class SearchFiles {
                 continue;
             }
             dist =  sObj.findWordDist(term, misSpeltWord, sObj);
-            if(dist == 1000)
+            if(dist == -1)
             {
                 continue;
             }
@@ -681,12 +677,10 @@ public class SearchFiles {
             levenDist = sObj.computeLevenDistance(term, misSpeltWord, sObj);
             if(levenDist == 1)
             {   
-                System.out.println("Leven DIstance is LEVEN LEVEN LEVEN" + levenDist);
                 possibleCand.add(term);
             }   
             if(levenDist == 2)
             {
-                System.out.println("Leven DIstance is LEVEN LEVEN LEVEN - 2" + levenDist);
                 secondaryCand.add(term);
             }
             
@@ -694,7 +688,6 @@ public class SearchFiles {
         finalWord = sObj.findBestWord(possibleCand);
         if(finalWord == "")
         {
-            System.out.println("Trying to find best word in secondary cand");
             finalWord = sObj.findBestWord(secondaryCand);
         }
         return finalWord;
@@ -722,7 +715,7 @@ public class SearchFiles {
             {
                 System.out.println("No match found for this word");
                 word = sObj.handleMisspeltWords(word, sObj);
-                System.out.println("DID YOU MEAN " + word);
+                System.out.println("Did You Mean  " + word);
                 term = new Term("contents", word);
                 tdocs = r.termDocs(term);
             }
@@ -956,7 +949,7 @@ public class SearchFiles {
         Document d = r.document(maxPageRankIndex);
         String url = d.getFieldable("path").stringValue();
         System.out.println("Url is "+ url.replace("%%", "/"));
-        
+       
     }
 
  
@@ -967,12 +960,11 @@ public class SearchFiles {
         
         //Compute two norm for all the documents - Both for Tf and TfIdf
         sObj.getTwoNorm(sObj.r, sObj);
-        System.out.println("Two norm value for 845 " + Math.sqrt(sObj.twoNormTfIdf.get(845)));
         
         //PageRank computation
-        sObj.computePageRank(sObj, sObj.r);
+        //sObj.computePageRank(sObj, sObj.r);
         sObj.getMemoryUsage();
-        System.out.print("Page Rank Computation is overerrrrrr !!!!!");
+        System.out.print("Page Rank Computation is done");
         
         
         Scanner sc = new Scanner(System.in);
@@ -987,7 +979,8 @@ public class SearchFiles {
             str = str.toLowerCase();
            
             //To handle W Threshold value in query time 
-            if (str.startsWith("WThreshold"))
+            System.out.println(str);
+            if (str.startsWith("wthreshold"))
             {
                 parts = str.split("=");
                 sObj.wProb = Double.valueOf(parts[1]);
