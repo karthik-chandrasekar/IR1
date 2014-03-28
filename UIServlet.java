@@ -40,8 +40,8 @@ public class KarthikProject3Servlet extends HttpServlet {
         String Query = request.getParameter("Query");
         String method = "";
         StringBuilder outputBuf = new StringBuilder();
-        //String localFilePath = "/Users/karthikchandrasekar/Downloads/temp/result3";
-        //String filePath = "";
+        String localFilePath = "/Users/karthikchandrasekar/Downloads/temp/result3";
+        String filePath = "";
         
         List<String> results = new ArrayList<String>();
         
@@ -80,10 +80,10 @@ public class KarthikProject3Servlet extends HttpServlet {
 
                 for(String result : results)
                 {
-                    //out.println(result);
-                    //filePath = localFilePath + result;
-                    //outputBuf.append("<a href="+filePath+">" + result + "</a>");
-                    outputBuf.append("<p>"+result+"</p1>");
+                    out.println(result);
+                    filePath = localFilePath + result;
+                    outputBuf.append("<a href="+filePath+">" + result + "</a>" + "<br>");
+                    //outputBuf.append("<p>"+result+"</p1>");
                 }
                 
                 out.println("results are about to come");
