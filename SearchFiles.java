@@ -43,7 +43,7 @@ public class SearchFiles {
     String minIdfTerm;
     int maxPageRankIndex=0;
     int minPageRankIndex=0;
-    double pageRankThreshold = 0.00001;
+    double pageRankThreshold = 0.000001;
     
     double wProb = 0.4;
     double cProb = 0.8;
@@ -127,7 +127,7 @@ public class SearchFiles {
         sObj.computeAuthorityHub(topTenSimilarDocs, r);
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for Auth and Hubs "+ (double)(endTime - startTime)/1000);
-        //sObj.pageRankOrdering(relMap, r);
+        sObj.pageRankOrdering(relMap, r);
     }
 
     
@@ -962,7 +962,7 @@ public class SearchFiles {
         sObj.getTwoNorm(sObj.r, sObj);
         
         //PageRank computation
-        //sObj.computePageRank(sObj, sObj.r);
+        sObj.computePageRank(sObj, sObj.r);
         sObj.getMemoryUsage();
         System.out.print("Page Rank Computation is done");
         
