@@ -43,6 +43,15 @@ public class SearchFiles {
     List<String> PageRankResults = new ArrayList<String>();
     List<String> AHResults = new ArrayList<String>();
     
+    //Clustering
+
+    //Data structure to hold words of each document along with its TfIdf values
+    //Key - Doc id, Value - Map(Word, TfIdf)
+    Map<Integer, Map<String, Double>> docWordsMap = new HashMap<Integer, Map<String, Double>>();
+    
+    int kSize = 5;
+    int rCount = 5;
+       
     String indexPath = "/Users/karthikchandrasekar/Desktop/SecondSem/IR/Project1/irs13/index";
     
     double [] pageRankVector = new double[docSize]; 
@@ -54,7 +63,7 @@ public class SearchFiles {
     
     double wProb = 0.4;
     double cProb = 0.4;
-    int resultsCount = 10;
+    int resultsCount = 50;
  
     public void getTwoNorm(IndexReader r, SearchFiles sObj) throws Exception
     {
@@ -75,6 +84,7 @@ public class SearchFiles {
             TermDocs td = r.termDocs(te);
             while(td.next())
             {
+                //Two norm values of docs based on Tf values
                 freq = 0;
                 if (twoNorm.containsKey(td.doc()))
                 {
@@ -83,7 +93,7 @@ public class SearchFiles {
                 freq += td.freq() * td.freq();
                 twoNorm.put(td.doc(), freq);
                 
-                
+               //Two norm values of docs based on TfIdf values 
                IdfTemp = 0.0;
                if (twoNormTfIdf.containsKey(td.doc()))
                {
@@ -94,8 +104,20 @@ public class SearchFiles {
                IdfTemp += Idf * Idf;
                twoNormTfIdf.put(td.doc(), IdfTemp);
                
-               //Load all terms in a list
-         
+               Map<String, Double> wordMap;
+               //Populating docWordsMap to be used for clustering
+               if (sObj.docWordsMap.containsKey(td.doc()))
+               {
+                   wordMap = sObj.docWordsMap.get(td.doc());
+                   wordMap.put(t.term().text(), IdfTemp);
+                   sObj.docWordsMap.put(td.doc(), wordMap); 
+               }
+               else
+               {
+                   wordMap = new HashMap<String, Double>();
+                   wordMap.put(t.term().text(), IdfTemp);
+                   sObj.docWordsMap.put(td.doc(), wordMap);
+               }             
             }
             termList.add(t.term().text());
         }
@@ -120,24 +142,139 @@ public class SearchFiles {
         for(Map.Entry<String, Double> pair : sortedMap.entrySet())
         {
             loopVar++;
-            if(loopVar >resultsCount)
+            if(loopVar > resultsCount)
                 break;
             topTenSimilarDocs.put(pair.getKey(), pair.getValue());
             
             //Get url of the doc id
             Document d = r.document(Integer.parseInt(pair.getKey()));
             String url = d.getFieldable("path").stringValue();
-            sObj.TfIdfResults.add(url);
+            sObj.TfIdfResults.add(pair.getKey());
             System.out.println(pair.getKey() + " - " + url.replace("%%", "/"));
-
         }
         long startTime = System.currentTimeMillis();
-        sObj.computeAuthorityHub(topTenSimilarDocs, r, sObj);
+        //sObj.computeAuthorityHub(topTenSimilarDocs, r, sObj);
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for Auth and Hubs "+ (double)(endTime - startTime)/1000);
-        sObj.pageRankOrdering(relMap, r, sObj);
+        //sObj.pageRankOrdering(relMap, r, sObj);
+        sObj.resultsClustering(sObj);
     }
+    
+    public void resultsClustering(SearchFiles sObj)
+    {
+        int initialSeed; 
+        List<Map<String, Double>> centroidList = new LinkedList<Map<String, Double>>();
 
+        //Cluster the documents present in TfIdfResults - KMeans
+        
+        //Get initial seeds by randomly selecting them.
+        for(int k=0; k<sObj.kSize; k++)
+        {
+            initialSeed = (int )(Math.random() * 50 + 1);
+            centroidList.add(sObj.docWordsMap.get(sObj.TfIdfResults.get(initialSeed)));         
+        }   
+            
+        Map<String, Double> docVectorMap;
+        Map<Integer, Integer> docClusterMap = new HashMap<Integer, Integer>(); 
+
+        //Iterate over the TfIdf results to find out which cluster they belong to
+        
+        Double minSim,curSim;
+        Integer minIndex, docNum;
+        Integer index;
+        Map<Integer, Map<String, Double>> newCentroidMap = new HashMap<Integer, Map<String, Double>>();
+        Map<String, Double> curCentroidMap; 
+        Map<Integer, Integer> newCentroidInstanceCountMap = new HashMap<Integer, Integer>();
+        Double curTfIdfVal;
+        int instanceCount;
+        
+        for(String docId: sObj.TfIdfResults)
+        {
+            docNum = Integer.parseInt(docId);
+            minSim = 1000.0;
+            minIndex = -1;
+            docVectorMap = sObj.docWordsMap.get(docNum);        
+            
+            //Iterate over all the centroids to find out the one closest to this instance 
+            index = 0;
+            for(Map<String, Double> centroidVectorMap: centroidList)
+            {
+                curSim = sObj.findVectorSimilarity(docVectorMap, centroidVectorMap);
+                if(curSim < minSim)
+                {
+                    minSim = curSim;
+                    minIndex = index;                   
+                }
+                index++;
+            }
+            docClusterMap.put(docNum, minIndex);
+                    
+            //New centroid values computation
+            if (newCentroidMap.containsKey(minIndex))
+            {
+                curCentroidMap = newCentroidMap.get(index);
+            }
+            else
+            {
+                curCentroidMap = new HashMap<String, Double>();
+            }
+                    
+            for(Map.Entry<String, Double> docEntry: docVectorMap.entrySet())
+            {
+                if(curCentroidMap.containsKey(docEntry.getKey()))
+                {
+                    curTfIdfVal = curCentroidMap.get(docEntry.getKey());
+                    
+                }
+                else
+                {
+                    curTfIdfVal = 0.0;
+                }
+                curTfIdfVal =  curTfIdfVal + docEntry.getValue();
+                curCentroidMap.put(docEntry.getKey(), curTfIdfVal);                 
+            }
+            newCentroidMap.put(docNum, curCentroidMap);
+            
+            //Increment the new centroid instance count
+            if (newCentroidInstanceCountMap.containsKey(minIndex))
+            {
+                instanceCount = newCentroidInstanceCountMap.get(minIndex);
+            }
+            else
+            {
+                instanceCount = 0;
+            }
+            instanceCount = instanceCount + 1;
+            newCentroidInstanceCountMap.put(minIndex, instanceCount);
+            
+        }
+            
+        //Find new centroids 
+        
+        int clusterIndex = 0;
+        int clusterCount = 0;
+        
+        for(Map.Entry<Integer, Map<String, Double>> centroidVector : newCentroidMap.entrySet())
+        {           
+            clusterCount = newCentroidInstanceCountMap.get(centroidVector.getKey());
+            curCentroidMap = centroidVector.getValue();
+            for(Map.Entry<String, Double> centroidWordsVector : centroidVector.getValue().entrySet())
+            {
+                curTfIdfVal = centroidWordsVector.getValue();
+                curTfIdfVal = curTfIdfVal % clusterCount;           
+                curCentroidMap.put(centroidWordsVector.getKey(), curTfIdfVal);
+            }
+            newCentroidMap.put(centroidVector.getKey(), curCentroidMap);
+        }
+        
+        //Update the new centroids
+    }
+        
+    
+    Double findVectorSimilarity(Map<String, Double> docVectorMap, Map<String, Double> centroidVectorMap)
+    {
+        return 0.0;
+    }
     
     public void pageRankOrdering(Map<String, Double> relMap, IndexReader r, SearchFiles sObj) throws Exception
     {
@@ -1024,13 +1161,13 @@ public class SearchFiles {
     public static void main(String[] args) throws Exception
     {
         SearchFiles sObj = new SearchFiles();
-        sObj.r = IndexReader.open(FSDirectory.open(new File("index")));
+        sObj.r = IndexReader.open(FSDirectory.open(new File(sObj.indexPath)));
         
         //Compute two norm for all the documents - Both for Tf and TfIdf
         sObj.getTwoNorm(sObj.r, sObj);
         
         //PageRank computation
-        sObj.computePageRank(sObj, sObj.r);
+        //sObj.computePageRank(sObj, sObj.r);
         sObj.getMemoryUsage();
         System.out.print("Page Rank Computation is done");
         
