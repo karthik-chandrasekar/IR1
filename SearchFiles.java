@@ -163,27 +163,43 @@ public class SearchFiles {
     
     public void resultsClustering(SearchFiles sObj)
     {
-        int initialSeed; 
-        Double diff=0.0;
-        List<Map<String, Double>> centroidList = new LinkedList<Map<String, Double>>();
-        List<Map<String, Double>> newCentroidList = new LinkedList<Map<String, Double>>();
-
         //Cluster the documents present in TfIdfResults - KMeans
         
-        //Get initial seeds by randomly selecting them.
+        int initialSeed; 
+        Double diff = 0.0;
+        int docNum = 0;
+        
+        List<Map<String, Double>> centroidList = new LinkedList<Map<String, Double>>();
+        List<Map<String, Double>> newCentroidList = new LinkedList<Map<String, Double>>();
+        
+        //Get K different initial seeds  randomly 
+        Set<Integer> selectedSeeds = new HashSet<Integer>();
         for(int k=0; k<sObj.kSize; k++)
         {
-            initialSeed = (int)(Math.random() * 50 + 1);
-            centroidList.add(sObj.docWordsMap.get(sObj.TfIdfResults.get(initialSeed)));         
+            while(true)
+            {
+                initialSeed = (int)(Math.random() * 50);
+                if (selectedSeeds.contains(initialSeed))
+                {
+                    continue;
+                }
+                else
+                {
+                    break;
+                }
+            }   
+            docNum = Integer.parseInt(sObj.TfIdfResults.get(initialSeed));
+            centroidList.add(sObj.docWordsMap.get(docNum));
+            selectedSeeds.add(initialSeed);
         }   
             
         Map<String, Double> docVectorMap;
         Map<Integer, Integer> docClusterMap = new HashMap<Integer, Integer>(); 
 
-        //Iterate over the TfIdf results to find out which cluster they belong to
+        //Iterate over the TfIdf results to find out which cluster each one belongs to.
         
-        Double minSim,curSim;
-        Integer minIndex, docNum;
+        Double maxSim,curSim;
+        Integer maxIndex= 0;
         Integer index;
         Map<Integer, Map<String, Double>> newCentroidMap = new HashMap<Integer, Map<String, Double>>();
         Map<String, Double> curCentroidMap; 
@@ -194,8 +210,8 @@ public class SearchFiles {
         for(String docId: sObj.TfIdfResults)
         {
             docNum = Integer.parseInt(docId);
-            minSim = 1000.0;
-            minIndex = -1;
+            maxSim = 0.0;
+            maxIndex = -1;
             docVectorMap = sObj.docWordsMap.get(docNum);        
             
             //Iterate over all the centroids to find out the one closest to this instance 
@@ -203,19 +219,19 @@ public class SearchFiles {
             for(Map<String, Double> centroidVectorMap: centroidList)
             {
                 curSim = sObj.findVectorSimilarity(docNum, docVectorMap, centroidVectorMap, sObj);
-                if(curSim < minSim)
+                if(curSim > maxSim)
                 {
-                    minSim = curSim;
-                    minIndex = index;                   
+                    maxSim = curSim;
+                    maxIndex = index;                   
                 }
                 index++;
             }
-            docClusterMap.put(docNum, minIndex);
+            docClusterMap.put(docNum, maxIndex);
                     
-            //New centroid values computation
-            if (newCentroidMap.containsKey(minIndex))
+            //New centroid values computation simultaneously
+            if (newCentroidMap.containsKey(maxIndex))
             {
-                curCentroidMap = newCentroidMap.get(index);
+                curCentroidMap = newCentroidMap.get(maxIndex);
             }
             else
             {
@@ -224,10 +240,10 @@ public class SearchFiles {
                     
             for(Map.Entry<String, Double> docEntry: docVectorMap.entrySet())
             {
+                System.out.println(docEntry.getKey());
                 if(curCentroidMap.containsKey(docEntry.getKey()))
                 {
-                    curTfIdfVal = curCentroidMap.get(docEntry.getKey());
-                    
+                    curTfIdfVal = curCentroidMap.get(docEntry.getKey());                    
                 }
                 else
                 {
@@ -236,29 +252,27 @@ public class SearchFiles {
                 curTfIdfVal =  curTfIdfVal + docEntry.getValue();
                 curCentroidMap.put(docEntry.getKey(), curTfIdfVal);                 
             }
-            newCentroidMap.put(docNum, curCentroidMap);
+            newCentroidMap.put(maxIndex, curCentroidMap);
             
             //Increment the new centroid instance count
-            if (newCentroidInstanceCountMap.containsKey(minIndex))
+            if (newCentroidInstanceCountMap.containsKey(maxIndex))
             {
-                instanceCount = newCentroidInstanceCountMap.get(minIndex);
+                instanceCount = newCentroidInstanceCountMap.get(maxIndex);
             }
             else
             {
                 instanceCount = 0;
             }
             instanceCount = instanceCount + 1;
-            newCentroidInstanceCountMap.put(minIndex, instanceCount);
-        
+            newCentroidInstanceCountMap.put(maxIndex, instanceCount);       
         }
             
         //Find new centroids 
         
-        int clusterIndex = 0;
         int clusterCount = 0;
         
         for(Map.Entry<Integer, Map<String, Double>> centroidVector : newCentroidMap.entrySet())
-        {           
+        {    
             clusterCount = newCentroidInstanceCountMap.get(centroidVector.getKey());
             curCentroidMap = centroidVector.getValue();
             for(Map.Entry<String, Double> centroidWordsVector : centroidVector.getValue().entrySet())
@@ -290,13 +304,25 @@ public class SearchFiles {
     
     Double getWordVectorMaxDiff(Map<String, Double> oldCentroidVector, Map<String, Double> newCentroidVector)
     {       
-        Double diff=0.0;
         Set<String> allWordsSet  = new HashSet<String>();
-        allWordsSet = oldCentroidVector.keySet();
-        allWordsSet.addAll(newCentroidVector.keySet());
+        Set<String> centroidWordsSet  = new HashSet<String>();
+        
         Double curDiff = 0.0;
         Double maxDiff = 10000.0;
         Double oldTfIdf, newTfIdf = 0.0;
+        
+        //Add centroid vector words to all words set
+        
+        for(String word: oldCentroidVector.keySet())
+        {
+            allWordsSet.add(word);
+        }
+        
+        for(String word: newCentroidVector.keySet())
+        {
+            allWordsSet.add(word);
+        }
+        
         
         for(String word: allWordsSet)
         {
@@ -328,10 +354,22 @@ public class SearchFiles {
     Double findVectorSimilarity(Integer docNum, Map<String, Double> docVectorMap, Map<String, Double> centroidVectorMap, SearchFiles sObj)
     {
         Set<String> allWordsSet  = new HashSet<String>();
-        allWordsSet = docVectorMap.keySet();
-        allWordsSet.addAll(centroidVectorMap.keySet());
+        Set<String> centroidWordsSet = new HashSet<String>();
         double sim = 0.0;
         double deno = 0.0;
+        
+        
+        //Add centroid vector words to all words set
+        
+        for(String word: docVectorMap.keySet())
+        {
+            allWordsSet.add(word);
+        }
+        
+        for(String word: centroidVectorMap.keySet())
+        {
+            allWordsSet.add(word);
+        }
         
         for(String word: allWordsSet)
         {
@@ -341,9 +379,8 @@ public class SearchFiles {
             }
         }
         
-        deno = sObj.twoNormTfIdf.get(docNum) * sObj.findCentroidTwoNorm(centroidVectorMap);
-        
-        return 0.0;
+        deno = sObj.twoNormTfIdf.get(docNum) * sObj.findCentroidTwoNorm(centroidVectorMap);     
+        return (sim/deno);
     }
     
     double findCentroidTwoNorm(Map<String, Double> centroidVectorMap)
@@ -351,7 +388,7 @@ public class SearchFiles {
         double twoNorm = 0.0;
         for(Map.Entry<String, Double> pair: centroidVectorMap.entrySet())
         {
-            twoNorm = twoNorm + pair.getValue()* pair.getValue();
+            twoNorm = twoNorm + pair.getValue() * pair.getValue();
         }
         return Math.sqrt(twoNorm);
     }
