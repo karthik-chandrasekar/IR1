@@ -9,6 +9,7 @@ import java.util.Scanner;
 import java.util.Arrays;
 import java.util.Set;
 import java.text.NumberFormat;
+import java.util.Collections;
 
 class ValueComparator implements Comparator<String> {
 
@@ -163,14 +164,16 @@ public class SearchFiles {
     public void resultsClustering(SearchFiles sObj)
     {
         int initialSeed; 
+        Double diff=0.0;
         List<Map<String, Double>> centroidList = new LinkedList<Map<String, Double>>();
+        List<Map<String, Double>> newCentroidList = new LinkedList<Map<String, Double>>();
 
         //Cluster the documents present in TfIdfResults - KMeans
         
         //Get initial seeds by randomly selecting them.
         for(int k=0; k<sObj.kSize; k++)
         {
-            initialSeed = (int )(Math.random() * 50 + 1);
+            initialSeed = (int)(Math.random() * 50 + 1);
             centroidList.add(sObj.docWordsMap.get(sObj.TfIdfResults.get(initialSeed)));         
         }   
             
@@ -199,7 +202,7 @@ public class SearchFiles {
             index = 0;
             for(Map<String, Double> centroidVectorMap: centroidList)
             {
-                curSim = sObj.findVectorSimilarity(docVectorMap, centroidVectorMap);
+                curSim = sObj.findVectorSimilarity(docNum, docVectorMap, centroidVectorMap, sObj);
                 if(curSim < minSim)
                 {
                     minSim = curSim;
@@ -246,7 +249,7 @@ public class SearchFiles {
             }
             instanceCount = instanceCount + 1;
             newCentroidInstanceCountMap.put(minIndex, instanceCount);
-            
+        
         }
             
         //Find new centroids 
@@ -268,12 +271,89 @@ public class SearchFiles {
         }
         
         //Update the new centroids
+        for(int i=0; i<kSize;i++)
+        {
+            newCentroidList.add(newCentroidMap.get(i));
+        }
+        
+        //Check for convergence
+        List<Double> diffList = new LinkedList<Double>();
+        
+        for(int i=0; i<kSize; i++)
+        {
+            diff = getWordVectorMaxDiff(centroidList.get(i), newCentroidList.get(i));
+            diffList.add(diff);
+        } 
+        diff = Collections.max(diffList);       
     }
         
     
-    Double findVectorSimilarity(Map<String, Double> docVectorMap, Map<String, Double> centroidVectorMap)
+    Double getWordVectorMaxDiff(Map<String, Double> oldCentroidVector, Map<String, Double> newCentroidVector)
+    {       
+        Double diff=0.0;
+        Set<String> allWordsSet  = new HashSet<String>();
+        allWordsSet = oldCentroidVector.keySet();
+        allWordsSet.addAll(newCentroidVector.keySet());
+        Double curDiff = 0.0;
+        Double maxDiff = 10000.0;
+        Double oldTfIdf, newTfIdf = 0.0;
+        
+        for(String word: allWordsSet)
+        {
+            oldTfIdf = oldCentroidVector.get(word);
+            newTfIdf = newCentroidVector.get(word);
+            
+            if(oldTfIdf == null && newTfIdf != null)
+            {
+                curDiff = newTfIdf;
+            }
+            else if (oldTfIdf != null && newTfIdf == null)
+            {
+                curDiff = oldTfIdf;
+            }
+            else
+            {
+                curDiff = Math.abs(newTfIdf - oldTfIdf);
+            }
+            
+            if (curDiff > maxDiff)
+            {
+                 maxDiff  = curDiff;
+            }
+        }
+        
+        return maxDiff;
+    }
+    
+    Double findVectorSimilarity(Integer docNum, Map<String, Double> docVectorMap, Map<String, Double> centroidVectorMap, SearchFiles sObj)
     {
+        Set<String> allWordsSet  = new HashSet<String>();
+        allWordsSet = docVectorMap.keySet();
+        allWordsSet.addAll(centroidVectorMap.keySet());
+        double sim = 0.0;
+        double deno = 0.0;
+        
+        for(String word: allWordsSet)
+        {
+            if(docVectorMap.containsKey(word) && centroidVectorMap.containsKey(word))
+            {
+                sim = sim + docVectorMap.get(word) * centroidVectorMap.get(word);
+            }
+        }
+        
+        deno = sObj.twoNormTfIdf.get(docNum) * sObj.findCentroidTwoNorm(centroidVectorMap);
+        
         return 0.0;
+    }
+    
+    double findCentroidTwoNorm(Map<String, Double> centroidVectorMap)
+    {
+        double twoNorm = 0.0;
+        for(Map.Entry<String, Double> pair: centroidVectorMap.entrySet())
+        {
+            twoNorm = twoNorm + pair.getValue()* pair.getValue();
+        }
+        return Math.sqrt(twoNorm);
     }
     
     public void pageRankOrdering(Map<String, Double> relMap, IndexReader r, SearchFiles sObj) throws Exception
