@@ -46,6 +46,24 @@ class ResultsComparator implements Comparator<Integer> {
     }
 }
 
+
+class KeyWordsComparator implements Comparator<String> {
+
+    Map<String, Double> base;
+    public KeyWordsComparator(Map<String, Double> base) {
+        this.base = base;
+    }
+
+    // This comparator imposes orderings that are inconsistent with equals.    
+    public int compare(String a, String b) {
+        if (base.get(a) >= base.get(b)) {
+            return -1;
+        } else {
+            return 1;
+        } 
+    }
+}
+
 public class SearchFiles {
     
     int docSize = 25054;
@@ -189,12 +207,47 @@ public class SearchFiles {
         TreeMap<Integer, Integer> sortedMap = new TreeMap<Integer, Integer>(bvc);
         sortedMap.putAll(docClusterMap);
         
+        //Collect high TfIdf value words
+        Map<Integer, List<String>> docKeyWordsMap = new HashMap<Integer, List<String>>();
+        
         for(Map.Entry<Integer, Integer> pair: sortedMap.entrySet())
         {
-            Document d = r.document(10);
+            Document d = r.document(pair.getKey());
             String url = d.getFieldable("path").stringValue();
+            docKeyWordsMap.put(pair.getKey(), getKeyWords(pair.getKey()));
             System.out.println(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/"));
+            System.out.println(docKeyWordsMap.get(pair.getKey()));
+            
         }
+    }
+    
+    
+    List<String> getKeyWords(Integer docNum)
+    {
+        Map<String, Double> tempDocWords = new HashMap<String, Double>();
+        List<String> tempList = new ArrayList<String>(); 
+        int keyWordCount = 10;
+        int loopVar = 0;
+        
+        tempDocWords = docWordsMap.get(docNum);
+        
+         KeyWordsComparator bvc =  new KeyWordsComparator(tempDocWords);
+         TreeMap<String, Double> sortedMap = new TreeMap<String, Double>(bvc);
+         sortedMap.putAll(tempDocWords);
+        
+         for(Map.Entry<String, Double> pair: sortedMap.entrySet())
+         {
+             if (loopVar < 10)
+             {
+                 tempList.add(pair.getKey());
+                 loopVar++;
+             }
+             else
+             {
+                 break;
+             }
+         }
+        return tempList;
     }
     
     public void resultsClustering(SearchFiles sObj, int resultsCount) throws Exception
@@ -342,7 +395,6 @@ public class SearchFiles {
                 //Check for convergence
                 List<Double> diffList = new LinkedList<Double>();
         
-                System.out.println(newCentroidList);
                 for(int i=0; i<kSize; i++)
                 {
                     diff = getWordVectorMaxDiff(centroidList.get(i), newCentroidList.get(i));
