@@ -166,7 +166,7 @@ public class SearchFiles {
         //Cluster the documents present in TfIdfResults - KMeans
         
         int initialSeed; 
-        Double diff = 0.0;
+        Double diff = 1.0;
         int docNum = 0;
         
         List<Map<String, Double>> centroidList = new LinkedList<Map<String, Double>>();
@@ -197,7 +197,9 @@ public class SearchFiles {
         Map<Integer, Integer> docClusterMap = new HashMap<Integer, Integer>(); 
 
         //Iterate over the TfIdf results to find out which cluster each one belongs to.
-        
+        while(diff > 0.01)
+        {
+        System.out.println("Diff is " +  diff);
         Double maxSim,curSim;
         Integer maxIndex= 0;
         Integer index;
@@ -206,7 +208,7 @@ public class SearchFiles {
         Map<Integer, Integer> newCentroidInstanceCountMap = new HashMap<Integer, Integer>();
         Double curTfIdfVal;
         int instanceCount;
-        
+   
         for(String docId: sObj.TfIdfResults)
         {
             docNum = Integer.parseInt(docId);
@@ -240,7 +242,7 @@ public class SearchFiles {
                     
             for(Map.Entry<String, Double> docEntry: docVectorMap.entrySet())
             {
-                System.out.println(docEntry.getKey());
+                
                 if(curCentroidMap.containsKey(docEntry.getKey()))
                 {
                     curTfIdfVal = curCentroidMap.get(docEntry.getKey());                    
@@ -298,8 +300,11 @@ public class SearchFiles {
             diff = getWordVectorMaxDiff(centroidList.get(i), newCentroidList.get(i));
             diffList.add(diff);
         } 
-        diff = Collections.max(diffList);       
+        diff = Collections.max(diffList);   
+        Collections.copy(centroidList, newCentroidList);
+        newCentroidList.clear();
     }
+    }   
         
     
     Double getWordVectorMaxDiff(Map<String, Double> oldCentroidVector, Map<String, Double> newCentroidVector)
