@@ -215,7 +215,7 @@ public class SearchFiles {
         Map<Integer, Integer> docClusterMap = new HashMap<Integer, Integer>(); 
         Map<Integer, Integer> bestDocClusterMap = new HashMap<Integer, Integer>();
         
-        for(int g =0 ; g < sObj.rCount; g++)
+        for(int g =0 ; g < 1; g++)
         {   
             //Get K different initial seeds  randomly 
             Set<Integer> selectedSeeds = new HashSet<Integer>();
@@ -266,6 +266,7 @@ public class SearchFiles {
                     index = 0;
                     for(Map<String, Double> centroidVectorMap: centroidList)
                     {
+                        if (centroidVectorMap == null)continue;
                         curSim = sObj.findVectorSimilarity(docNum, docVectorMap, centroidVectorMap, sObj);
                         if(curSim > maxSim)
                         {
@@ -341,6 +342,7 @@ public class SearchFiles {
                 //Check for convergence
                 List<Double> diffList = new LinkedList<Double>();
         
+                System.out.println(newCentroidList);
                 for(int i=0; i<kSize; i++)
                 {
                     diff = getWordVectorMaxDiff(centroidList.get(i), newCentroidList.get(i));
@@ -404,6 +406,9 @@ public class SearchFiles {
     
     Double getWordVectorMaxDiff(Map<String, Double> oldCentroidVector, Map<String, Double> newCentroidVector)
     {       
+        if (oldCentroidVector == null || newCentroidVector == null)
+            return 0.0;
+        
         Set<String> allWordsSet  = new HashSet<String>();
         Set<String> centroidWordsSet  = new HashSet<String>();
         
