@@ -68,7 +68,7 @@ public class SearchFiles {
     //Key - Doc id, Value - Map(Word, TfIdf)
     Map<Integer, Map<String, Double>> docWordsMap = new HashMap<Integer, Map<String, Double>>();
     
-    int kSize = 3;
+    int kSize = 10;
     int rCount = 5;
        
     String indexPath = "/Users/karthikchandrasekar/Desktop/SecondSem/IR/Project1/irs13/index";
@@ -204,148 +204,204 @@ public class SearchFiles {
         int initialSeed; 
         Double diff = 1.0;
         int docNum = 0;
+        double curSSE = 0.0;
+        double maxSSE = 0.0;
+        
         
         List<Map<String, Double>> centroidList = new LinkedList<Map<String, Double>>();
         List<Map<String, Double>> newCentroidList = new LinkedList<Map<String, Double>>();
+        List<Map<String, Double>> oldCentroidList = new LinkedList<Map<String, Double>>();
         
-        //Get K different initial seeds  randomly 
-        Set<Integer> selectedSeeds = new HashSet<Integer>();
-        for(int k=0; k<sObj.kSize; k++)
-        {
-            while(true)
-            {
-                initialSeed = (int)(Math.random() * resultsCount);
-                if (selectedSeeds.contains(initialSeed))
-                {
-                    continue;
-                }
-                else
-                {
-                    break;
-                }
-            }   
-            docNum = Integer.parseInt(sObj.TfIdfResults.get(initialSeed));
-            centroidList.add(sObj.docWordsMap.get(docNum));
-            selectedSeeds.add(initialSeed);
-        }   
-            
-        Map<String, Double> docVectorMap;
         Map<Integer, Integer> docClusterMap = new HashMap<Integer, Integer>(); 
+        Map<Integer, Integer> bestDocClusterMap = new HashMap<Integer, Integer>();
+        
+        for(int g =0 ; g < sObj.rCount; g++)
+        {   
+            //Get K different initial seeds  randomly 
+            Set<Integer> selectedSeeds = new HashSet<Integer>();
+            diff = 1.0;
+            for(int k=0; k<sObj.kSize; k++)
+            {
+                while(true)
+                {
+                    initialSeed = (int)(Math.random() * (resultsCount-1));
+                
+                    if (selectedSeeds.contains(initialSeed))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }   
+                docNum = Integer.parseInt(sObj.TfIdfResults.get(initialSeed));
+                centroidList.add(sObj.docWordsMap.get(docNum));
+                selectedSeeds.add(initialSeed);
+            }   
+            
+            Map<String, Double> docVectorMap;
+    
 
         //Iterate over the TfIdf results to find out which cluster each one belongs to.
-        while(diff > 0.01)
-        {
-        Double maxSim,curSim;
-        Integer maxIndex= 0;
-        Integer index;
-        Map<Integer, Map<String, Double>> newCentroidMap = new HashMap<Integer, Map<String, Double>>();
-        Map<String, Double> curCentroidMap; 
-        Map<Integer, Integer> newCentroidInstanceCountMap = new HashMap<Integer, Integer>();
-        Double curTfIdfVal;
-        int instanceCount;
+            while(diff > 0.01)
+            {
+                Double maxSim,curSim;
+                Integer maxIndex= 0;
+                Integer index;
+                Map<Integer, Map<String, Double>> newCentroidMap = new HashMap<Integer, Map<String, Double>>();
+                Map<String, Double> curCentroidMap; 
+                Map<Integer, Integer> newCentroidInstanceCountMap = new HashMap<Integer, Integer>();
+                Double curTfIdfVal;
+                int instanceCount;
    
-        for(String docId: sObj.TfIdfResults)
-        {
-            docNum = Integer.parseInt(docId);
-            maxSim = 0.0;
-            maxIndex = -1;
-            docVectorMap = sObj.docWordsMap.get(docNum);        
-            
-            //Iterate over all the centroids to find out the one closest to this instance 
-            index = 0;
-            for(Map<String, Double> centroidVectorMap: centroidList)
-            {
-                curSim = sObj.findVectorSimilarity(docNum, docVectorMap, centroidVectorMap, sObj);
-                if(curSim > maxSim)
+                for(String docId: sObj.TfIdfResults)
                 {
-                    maxSim = curSim;
-                    maxIndex = index;                   
-                }
-                index++;
-            }
-            docClusterMap.put(docNum, maxIndex);
+                    docNum = Integer.parseInt(docId);
+                    maxSim = 0.0;
+                    maxIndex = -1;
+                    docVectorMap = sObj.docWordsMap.get(docNum);        
+            
+                    //Iterate over all the centroids to find out the one closest to this instance 
+                    index = 0;
+                    for(Map<String, Double> centroidVectorMap: centroidList)
+                    {
+                        curSim = sObj.findVectorSimilarity(docNum, docVectorMap, centroidVectorMap, sObj);
+                        if(curSim > maxSim)
+                        {
+                            maxSim = curSim;
+                            maxIndex = index;                   
+                        }
+                        index++;
+                    }
+                    docClusterMap.put(docNum, maxIndex);
                     
-            //New centroid values computation simultaneously
-            if (newCentroidMap.containsKey(maxIndex))
-            {
-                curCentroidMap = newCentroidMap.get(maxIndex);
-            }
-            else
-            {
-                curCentroidMap = new HashMap<String, Double>();
-            }
+                    //New centroid values computation simultaneously
+                    if (newCentroidMap.containsKey(maxIndex))
+                    {
+                        curCentroidMap = newCentroidMap.get(maxIndex);
+                    }
+                    else
+                    {
+                        curCentroidMap = new HashMap<String, Double>();
+                    }
                     
-            for(Map.Entry<String, Double> docEntry: docVectorMap.entrySet())
-            {
-                
-                if(curCentroidMap.containsKey(docEntry.getKey()))
-                {
-                    curTfIdfVal = curCentroidMap.get(docEntry.getKey());                    
-                }
-                else
-                {
-                    curTfIdfVal = 0.0;
-                }
-                curTfIdfVal =  curTfIdfVal + docEntry.getValue();
-                curCentroidMap.put(docEntry.getKey(), curTfIdfVal);                 
-            }
-            newCentroidMap.put(maxIndex, curCentroidMap);
+                    for(Map.Entry<String, Double> docEntry: docVectorMap.entrySet())
+                    {
+                        
+                        if(curCentroidMap.containsKey(docEntry.getKey()))
+                        {
+                            curTfIdfVal = curCentroidMap.get(docEntry.getKey());                    
+                        }
+                        else
+                        {
+                            curTfIdfVal = 0.0;
+                        }
+                        curTfIdfVal =  curTfIdfVal + docEntry.getValue();
+                        curCentroidMap.put(docEntry.getKey(), curTfIdfVal);                 
+                    }
+                    newCentroidMap.put(maxIndex, curCentroidMap);
             
-            //Increment the new centroid instance count
-            if (newCentroidInstanceCountMap.containsKey(maxIndex))
-            {
-                instanceCount = newCentroidInstanceCountMap.get(maxIndex);
-            }
-            else
-            {
-                instanceCount = 0;
-            }
-            instanceCount = instanceCount + 1;
-            newCentroidInstanceCountMap.put(maxIndex, instanceCount);       
-        }
+                    //Increment the new centroid instance count
+                    if (newCentroidInstanceCountMap.containsKey(maxIndex))
+                    {
+                        instanceCount = newCentroidInstanceCountMap.get(maxIndex);
+                    }
+                    else
+                    {
+                        instanceCount = 0;
+                    }
+                    instanceCount = instanceCount + 1;
+                    newCentroidInstanceCountMap.put(maxIndex, instanceCount);       
+                }
             
-        //Find new centroids 
+                //Find new centroids 
         
-        int clusterCount = 0;
+                int clusterCount = 0;
         
-        for(Map.Entry<Integer, Map<String, Double>> centroidVector : newCentroidMap.entrySet())
-        {    
-            clusterCount = newCentroidInstanceCountMap.get(centroidVector.getKey());
-            curCentroidMap = centroidVector.getValue();
-            for(Map.Entry<String, Double> centroidWordsVector : centroidVector.getValue().entrySet())
-            {
-                curTfIdfVal = centroidWordsVector.getValue();
-                curTfIdfVal = curTfIdfVal % clusterCount;           
-                curCentroidMap.put(centroidWordsVector.getKey(), curTfIdfVal);
-            }
-            newCentroidMap.put(centroidVector.getKey(), curCentroidMap);
-        }
+                for(Map.Entry<Integer, Map<String, Double>> centroidVector : newCentroidMap.entrySet())
+                {    
+                    clusterCount = newCentroidInstanceCountMap.get(centroidVector.getKey());
+                    curCentroidMap = centroidVector.getValue();
+                    for(Map.Entry<String, Double> centroidWordsVector : centroidVector.getValue().entrySet())
+                    {
+                        curTfIdfVal = centroidWordsVector.getValue();
+                        curTfIdfVal = curTfIdfVal % clusterCount;           
+                        curCentroidMap.put(centroidWordsVector.getKey(), curTfIdfVal);
+                    }
+                    newCentroidMap.put(centroidVector.getKey(), curCentroidMap);
+                }
         
-        //Update the new centroids
-        for(int i=0; i<kSize;i++)
-        {
-            newCentroidList.add(newCentroidMap.get(i));
-        }
+                //Update the new centroids
+                for(int i=0; i<kSize;i++)
+                {
+                    newCentroidList.add(newCentroidMap.get(i));
+                }
         
-        //Check for convergence
-        List<Double> diffList = new LinkedList<Double>();
+                //Check for convergence
+                List<Double> diffList = new LinkedList<Double>();
         
-        for(int i=0; i<kSize; i++)
-        {
-            diff = getWordVectorMaxDiff(centroidList.get(i), newCentroidList.get(i));
-            diffList.add(diff);
-        } 
-        diff = Collections.max(diffList);   
-        System.out.println("Diff is " +  diff);
-        //System.out.println(newCentroidInstanceCountMap);
+                for(int i=0; i<kSize; i++)
+                {
+                    diff = getWordVectorMaxDiff(centroidList.get(i), newCentroidList.get(i));
+                    diffList.add(diff);
+                } 
+                diff = Collections.max(diffList);   
+                System.out.println("Diff is " +  diff);
+                //System.out.println(newCentroidInstanceCountMap);
 
-        Collections.copy(centroidList, newCentroidList);
-        newCentroidList.clear();
-    }
-        System.out.println(docClusterMap);
+        
+                for(int z=0;z<kSize;z++)
+                {
+                    oldCentroidList.add(null);
+                }
+            
+                Collections.copy(centroidList, newCentroidList);
+                newCentroidList.clear();
+            }
+            curSSE = sObj.findSSE(docClusterMap, centroidList, sObj);
+            System.out.println("Current SSE  " + curSSE);
+            if (curSSE > maxSSE)
+            {
+                bestDocClusterMap.putAll(docClusterMap);
+                maxSSE = curSSE;
+            }
+        }
         sObj.displayClusters(docClusterMap);
-    }   
-           
+    }
+    
+    Double findSSE(Map<Integer, Integer> docClusterMap, List<Map<String, Double>> oldCentroidList, SearchFiles sObj)
+    {
+        //Used similarity condition to find out the tightness of the cluster
+        //High similarity corresponds to high tightness
+        
+        Map<Integer, Double> sseMap = new HashMap<Integer, Double>();
+        double sseVal=0.0;
+        
+        for(Map.Entry<Integer, Integer> docInstanceMap: docClusterMap.entrySet())
+        {
+            if(sseMap.containsKey(docInstanceMap.getValue()))
+            {
+                sseVal = sseMap.get(docInstanceMap.getValue());
+            }
+            else
+            {
+                sseVal = 0.0;
+            }
+            sseVal = sseVal + sObj.getWordVectorMaxDiff(sObj.docWordsMap.get(docInstanceMap.getKey()), oldCentroidList.get(docInstanceMap.getValue()));
+            sseMap.put(docInstanceMap.getValue(), sseVal);
+        }
+        
+        sseVal = 0.0;
+
+        for(Map.Entry<Integer, Double> sseInstance: sseMap.entrySet())
+        {
+            sseVal  = sseVal + sseInstance.getValue();
+        }
+        System.out.println("SSE VALUE IS" + Math.sqrt(sseVal));
+        return Math.sqrt(sseVal);
+    }
+    
     Double getWordVectorMaxDiff(Map<String, Double> oldCentroidVector, Map<String, Double> newCentroidVector)
     {       
         Set<String> allWordsSet  = new HashSet<String>();
