@@ -28,6 +28,24 @@ class ValueComparator implements Comparator<String> {
     }
 }
 
+
+class ResultsComparator implements Comparator<Integer> {
+
+    Map<Integer, Integer> base;
+    public ResultsComparator(Map<Integer, Integer> base) {
+        this.base = base;
+    }
+
+    // This comparator imposes orderings that are inconsistent with equals.    
+    public int compare(Integer a, Integer b) {
+        if (base.get(a) >= base.get(b)) {
+            return -1;
+        } else {
+            return 1;
+        } 
+    }
+}
+
 public class SearchFiles {
     
     int docSize = 25054;
@@ -50,7 +68,7 @@ public class SearchFiles {
     //Key - Doc id, Value - Map(Word, TfIdf)
     Map<Integer, Map<String, Double>> docWordsMap = new HashMap<Integer, Map<String, Double>>();
     
-    int kSize = 5;
+    int kSize = 3;
     int rCount = 5;
        
     String indexPath = "/Users/karthikchandrasekar/Desktop/SecondSem/IR/Project1/irs13/index";
@@ -150,20 +168,36 @@ public class SearchFiles {
             topTenSimilarDocs.put(pair.getKey(), pair.getValue());
             
             //Get url of the doc id
-            Document d = r.document(Integer.parseInt(pair.getKey()));
-            String url = d.getFieldable("path").stringValue();
+            
             sObj.TfIdfResults.add(pair.getKey());
-            System.out.println(pair.getKey() + " - " + url.replace("%%", "/"));
         }
         long startTime = System.currentTimeMillis();
         //sObj.computeAuthorityHub(topTenSimilarDocs, r, sObj);
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for Auth and Hubs "+ (double)(endTime - startTime)/1000);
         //sObj.pageRankOrdering(relMap, r, sObj);
-        sObj.resultsClustering(sObj);
+        if (loopVar > 2)
+        {
+            sObj.resultsClustering(sObj, loopVar);
+        }
     }
     
-    public void resultsClustering(SearchFiles sObj)
+    void displayClusters(Map<Integer, Integer> docClusterMap) throws Exception
+    {   
+        
+        ResultsComparator bvc =  new ResultsComparator(docClusterMap);
+        TreeMap<Integer, Integer> sortedMap = new TreeMap<Integer, Integer>(bvc);
+        sortedMap.putAll(docClusterMap);
+        
+        for(Map.Entry<Integer, Integer> pair: sortedMap.entrySet())
+        {
+            Document d = r.document(10);
+            String url = d.getFieldable("path").stringValue();
+            System.out.println(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/"));
+        }
+    }
+    
+    public void resultsClustering(SearchFiles sObj, int resultsCount) throws Exception
     {
         //Cluster the documents present in TfIdfResults - KMeans
         
@@ -180,7 +214,7 @@ public class SearchFiles {
         {
             while(true)
             {
-                initialSeed = (int)(Math.random() * 50);
+                initialSeed = (int)(Math.random() * resultsCount);
                 if (selectedSeeds.contains(initialSeed))
                 {
                     continue;
@@ -303,13 +337,15 @@ public class SearchFiles {
         } 
         diff = Collections.max(diffList);   
         System.out.println("Diff is " +  diff);
+        //System.out.println(newCentroidInstanceCountMap);
 
         Collections.copy(centroidList, newCentroidList);
         newCentroidList.clear();
     }
+        System.out.println(docClusterMap);
+        sObj.displayClusters(docClusterMap);
     }   
-        
-    
+           
     Double getWordVectorMaxDiff(Map<String, Double> oldCentroidVector, Map<String, Double> newCentroidVector)
     {       
         Set<String> allWordsSet  = new HashSet<String>();
@@ -365,8 +401,7 @@ public class SearchFiles {
         Set<String> centroidWordsSet = new HashSet<String>();
         double sim = 0.0;
         double deno = 0.0;
-        
-        
+                
         //Add centroid vector words to all words set
         
         for(String word: docVectorMap.keySet())
