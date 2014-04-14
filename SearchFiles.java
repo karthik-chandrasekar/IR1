@@ -105,20 +105,22 @@ public class SearchFiles {
                IdfTemp += Idf * Idf;
                twoNormTfIdf.put(td.doc(), IdfTemp);
                
+                          
                Map<String, Double> wordMap;
                //Populating docWordsMap to be used for clustering
                if (sObj.docWordsMap.containsKey(td.doc()))
                {
                    wordMap = sObj.docWordsMap.get(td.doc());
-                   wordMap.put(t.term().text(), IdfTemp);
+                   wordMap.put(t.term().text(), Idf);
                    sObj.docWordsMap.put(td.doc(), wordMap); 
                }
                else
                {
                    wordMap = new HashMap<String, Double>();
-                   wordMap.put(t.term().text(), IdfTemp);
+                   wordMap.put(t.term().text(), Idf);
                    sObj.docWordsMap.put(td.doc(), wordMap);
-               }             
+               }   
+               
             }
             termList.add(t.term().text());
         }
@@ -199,7 +201,6 @@ public class SearchFiles {
         //Iterate over the TfIdf results to find out which cluster each one belongs to.
         while(diff > 0.01)
         {
-        System.out.println("Diff is " +  diff);
         Double maxSim,curSim;
         Integer maxIndex= 0;
         Integer index;
@@ -301,6 +302,8 @@ public class SearchFiles {
             diffList.add(diff);
         } 
         diff = Collections.max(diffList);   
+        System.out.println("Diff is " +  diff);
+
         Collections.copy(centroidList, newCentroidList);
         newCentroidList.clear();
     }
@@ -313,7 +316,7 @@ public class SearchFiles {
         Set<String> centroidWordsSet  = new HashSet<String>();
         
         Double curDiff = 0.0;
-        Double maxDiff = 10000.0;
+        Double maxDiff = 0.0;
         Double oldTfIdf, newTfIdf = 0.0;
         
         //Add centroid vector words to all words set
