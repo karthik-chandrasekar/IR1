@@ -206,6 +206,9 @@ public class SearchFiles {
         ResultsComparator bvc =  new ResultsComparator(docClusterMap);
         TreeMap<Integer, Integer> sortedMap = new TreeMap<Integer, Integer>(bvc);
         sortedMap.putAll(docClusterMap);
+        Map<Integer, List<String>> clusterKeyWords = new HashMap<Integer, List<String>>();
+        List<String> tempList;
+        int wordcount = 0;
         
         //Collect high TfIdf value words
         Map<Integer, List<String>> docKeyWordsMap = new HashMap<Integer, List<String>>();
@@ -218,6 +221,31 @@ public class SearchFiles {
             System.out.println(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/"));
             System.out.println(docKeyWordsMap.get(pair.getKey()));
             
+            //Collect keywords to describe a cluster
+            if(clusterKeyWords.containsKey(docClusterMap.get(pair.getKey())))
+            {
+                wordcount = 0;
+                tempList = clusterKeyWords.get(docClusterMap.get(pair.getKey()));
+            
+            }
+            else
+            {
+                tempList = new ArrayList<String>();
+            }
+            for(String keyword: docKeyWordsMap.get(pair.getKey()))
+            {
+                if (wordcount == 5) break;
+                tempList.add(keyword);
+                wordcount ++;
+            }
+            clusterKeyWords.put(docClusterMap.get(pair.getKey()), tempList);
+        }
+        
+        System.out.println("Cluster description");
+        for(Map.Entry<Integer, List<String>> clusterDesc: clusterKeyWords.entrySet())
+        {
+            System.out.println("Cluster Id  " + clusterDesc.getKey());
+            System.out.println(clusterDesc.getValue());
         }
     }
     
