@@ -3,7 +3,10 @@ import org.apache.lucene.index.*;
 import java.util.*;
 import org.apache.lucene.store.*;
 import org.apache.lucene.document.*;
+
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.Arrays;
@@ -90,10 +93,13 @@ public class SearchFiles {
     int rCount = 3;
        
     String indexPath = "/Users/karthikchandrasekar/Desktop/SecondSem/IR/Project1/irs13/index";
+    String htmlFilePath = "/Users/karthikchandrasekar/Desktop/SecondSem/IR/Project1/irs13/result3/";
     
     double [] pageRankVector = new double[docSize]; 
   
     String minIdfTerm;
+    String inputQuery="";
+    
     int maxPageRankIndex=0;
     int minPageRankIndex=0;
     double pageRankThreshold = 0.00001;
@@ -218,6 +224,7 @@ public class SearchFiles {
 
         //Collect high TfIdf value words
         Map<Integer, Set<String>> docKeyWordsMap = new HashMap<Integer, Set<String>>();
+        Map<Integer, List<String>> docHtmlWordsMap = new HashMap<Integer, List<String>>();
         
         for(Map.Entry<Integer, Integer> pair: sortedMap.entrySet())
         {
@@ -242,12 +249,18 @@ public class SearchFiles {
             
             Document d = r.document(pair.getKey());
             String url = d.getFieldable("path").stringValue();
+            
+            // Add neighbour words of query in every document
+            docHtmlWordsMap.put(pair.getKey(), getNeighbourWords(pair.getKey(), url));
+            
+            //Add key words of every document 
             docKeyWordsMap.put(pair.getKey(), getKeyWords(pair.getKey()));
             if(skipFlag == 0)
             {
                 
                 System.out.println(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/"));
                 //System.out.println(docKeyWordsMap.get(pair.getKey()));
+                System.out.println(docHtmlWordsMap.get(pair.getKey()));
             }
             else
             {
@@ -286,6 +299,62 @@ public class SearchFiles {
         }
     }
     
+    
+    List<String> getNeighbourWords(Integer docNum, String url)
+    {
+        
+        //Read the given file, collect the neighbor terms of the ever input query word and return it
+        String htmlFile = htmlFilePath + url;
+        String line;
+        int indexCount=0;
+        List<String> tempList = new ArrayList<String>();
+        List<String> neighborList = new ArrayList<String>();
+        String temp = "";
+        
+        try
+        {
+            BufferedReader br = new BufferedReader(new FileReader(htmlFile));
+            while ((line = br.readLine()) != null) 
+            {
+                line = line.toLowerCase();
+                inputQuery = inputQuery.toLowerCase();
+                
+                //System.out.println(line);
+                //System.out.println(inputQuery);
+                
+                tempList = Arrays.asList(line.split(" "));
+                for (String queryWord : inputQuery.split(" "))
+                {
+                    if (tempList.contains(queryWord))
+                    {                       
+                            indexCount = tempList.indexOf(queryWord);
+                            
+                            for(int inIndex=indexCount-2;inIndex<indexCount+3;inIndex++)
+                            {
+                                try
+                                {
+                                    temp = temp + " " + tempList.get(inIndex);
+                                }
+                                catch(Exception e)
+                                {
+                                    continue;
+                                }
+                            }
+                            neighborList.add(temp);
+                            temp = " ";
+                    }
+                }
+               // process the line.
+            }
+            br.close();
+        }
+        catch(Exception e)
+        {
+            System.out.println("Exception is " + e);
+        }
+            
+        return neighborList;
+    }
     
     Set<String> getKeyWords(Integer docNum)
     {
@@ -1520,6 +1589,9 @@ public class SearchFiles {
             long startTime = System.currentTimeMillis();
             str = str.toLowerCase();
            
+            //Assign the input query
+            sObj.inputQuery = str;
+            
             //To handle W Threshold value in query time 
             System.out.println(str);
             if (str.startsWith("wthreshold"))
