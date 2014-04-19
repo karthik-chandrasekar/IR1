@@ -210,14 +210,14 @@ public class SearchFiles {
         ResultsComparator bvc =  new ResultsComparator(docClusterMap);
         TreeMap<Integer, Integer> sortedMap = new TreeMap<Integer, Integer>(bvc);
         sortedMap.putAll(docClusterMap);
-        Map<Integer, List<String>> clusterKeyWords = new HashMap<Integer, List<String>>();
-        List<String> tempList;
+        Map<Integer, Set<String>> clusterKeyWords = new HashMap<Integer, Set<String>>();
+        Set<String> tempSet;
         int wordcount = 0;
         int docCount =0, skipFlag=0;
         Map<Integer, Integer> docPrintCountMap  = new HashMap<Integer, Integer>(); 
 
         //Collect high TfIdf value words
-        Map<Integer, List<String>> docKeyWordsMap = new HashMap<Integer, List<String>>();
+        Map<Integer, Set<String>> docKeyWordsMap = new HashMap<Integer, Set<String>>();
         
         for(Map.Entry<Integer, Integer> pair: sortedMap.entrySet())
         {
@@ -249,30 +249,37 @@ public class SearchFiles {
                 System.out.println(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/"));
                 //System.out.println(docKeyWordsMap.get(pair.getKey()));
             }
+            else
+            {
+                continue;
+            }
                 
             //Collect keywords to describe a cluster
             if(clusterKeyWords.containsKey(docClusterMap.get(pair.getKey())))
             {
-                tempList = clusterKeyWords.get(docClusterMap.get(pair.getKey()));
+                tempSet = clusterKeyWords.get(docClusterMap.get(pair.getKey()));
             
             }
             else
             {
-                tempList = new ArrayList<String>();
+                tempSet = new HashSet<String>();
             }
             wordcount = 0;
 
+            
             for(String keyword: docKeyWordsMap.get(pair.getKey()))
             {
                 if (wordcount == 5) break;
-                tempList.add(keyword);
+                tempSet.add(keyword);
                 wordcount ++;
             }
-            clusterKeyWords.put(docClusterMap.get(pair.getKey()), tempList);
-        }
+            
+            clusterKeyWords.put(docClusterMap.get(pair.getKey()), tempSet);
+            
+       }
         
         System.out.println("Cluster description");
-        for(Map.Entry<Integer, List<String>> clusterDesc: clusterKeyWords.entrySet())
+        for(Map.Entry<Integer, Set<String>> clusterDesc: clusterKeyWords.entrySet())
         {
             System.out.println("Cluster Id  " + clusterDesc.getKey());
             System.out.println(clusterDesc.getValue());
@@ -280,11 +287,10 @@ public class SearchFiles {
     }
     
     
-    List<String> getKeyWords(Integer docNum)
+    Set<String> getKeyWords(Integer docNum)
     {
         Map<String, Double> tempDocWords = new HashMap<String, Double>();
-        List<String> tempList = new ArrayList<String>(); 
-        int keyWordCount = 10;
+        Set<String> tempSet = new HashSet<String>(); 
         int loopVar = 0;
         
         tempDocWords = docWordsMap.get(docNum);
@@ -297,7 +303,7 @@ public class SearchFiles {
          {
              if (loopVar < 10)
              {
-                 tempList.add(pair.getKey());
+                 tempSet.add(pair.getKey());
                  loopVar++;
              }
              else
@@ -305,7 +311,7 @@ public class SearchFiles {
                  break;
              }
          }
-        return tempList;
+        return tempSet;
     }
     
     public void resultsClustering(SearchFiles sObj, int resultsCount) throws Exception
