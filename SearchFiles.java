@@ -213,18 +213,43 @@ public class SearchFiles {
         Map<Integer, List<String>> clusterKeyWords = new HashMap<Integer, List<String>>();
         List<String> tempList;
         int wordcount = 0;
-        
+        int docCount =0, skipFlag=0;
+        Map<Integer, Integer> docPrintCountMap  = new HashMap<Integer, Integer>(); 
+
         //Collect high TfIdf value words
         Map<Integer, List<String>> docKeyWordsMap = new HashMap<Integer, List<String>>();
         
         for(Map.Entry<Integer, Integer> pair: sortedMap.entrySet())
         {
+            if(docPrintCountMap.containsKey(pair.getValue()))
+            {
+                if (docPrintCountMap.get(pair.getValue())<3)
+                {
+                    docCount ++;
+                }
+                else
+                {
+                    skipFlag = 1;
+                }               
+            }
+            else
+            {
+                docCount = 1;
+                skipFlag = 0;
+            }
+            
+            docPrintCountMap.put(pair.getValue(), docCount);
+            
             Document d = r.document(pair.getKey());
             String url = d.getFieldable("path").stringValue();
             docKeyWordsMap.put(pair.getKey(), getKeyWords(pair.getKey()));
-            System.out.println(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/"));
-            System.out.println(docKeyWordsMap.get(pair.getKey()));
-            
+            if(skipFlag == 0)
+            {
+                
+                System.out.println(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/"));
+                //System.out.println(docKeyWordsMap.get(pair.getKey()));
+            }
+                
             //Collect keywords to describe a cluster
             if(clusterKeyWords.containsKey(docClusterMap.get(pair.getKey())))
             {
