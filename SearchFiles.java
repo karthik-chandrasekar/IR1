@@ -86,8 +86,8 @@ public class SearchFiles {
     //Key - Doc id, Value - Map(Word, TfIdf)
     Map<Integer, Map<String, Double>> docWordsMap = new HashMap<Integer, Map<String, Double>>();
     
-    int kSize = 10;
-    int rCount = 5;
+    int kSize = 3;
+    int rCount = 3;
        
     String indexPath = "/Users/karthikchandrasekar/Desktop/SecondSem/IR/Project1/irs13/index";
     
@@ -114,6 +114,8 @@ public class SearchFiles {
         int totalDocs = r.maxDoc();
         double  Idf;
         double IdfTemp;
+        Map<String, Double> wordMap;
+
     
         while(t.next())
         {   
@@ -142,8 +144,8 @@ public class SearchFiles {
                twoNormTfIdf.put(td.doc(), IdfTemp);
                
                           
-               Map<String, Double> wordMap;
                //Populating docWordsMap to be used for clustering
+               //Map{doc_id, Map{term, TfIdf}} - Data structure of docWordsMap
                if (sObj.docWordsMap.containsKey(td.doc()))
                {
                    wordMap = sObj.docWordsMap.get(td.doc());
@@ -202,6 +204,8 @@ public class SearchFiles {
     
     void displayClusters(Map<Integer, Integer> docClusterMap) throws Exception
     {   
+        //1.Collect snippets for documents and clusters. 
+        //2.Group cluster documents and display it. 
         
         ResultsComparator bvc =  new ResultsComparator(docClusterMap);
         TreeMap<Integer, Integer> sortedMap = new TreeMap<Integer, Integer>(bvc);
@@ -224,7 +228,6 @@ public class SearchFiles {
             //Collect keywords to describe a cluster
             if(clusterKeyWords.containsKey(docClusterMap.get(pair.getKey())))
             {
-                wordcount = 0;
                 tempList = clusterKeyWords.get(docClusterMap.get(pair.getKey()));
             
             }
@@ -232,6 +235,8 @@ public class SearchFiles {
             {
                 tempList = new ArrayList<String>();
             }
+            wordcount = 0;
+
             for(String keyword: docKeyWordsMap.get(pair.getKey()))
             {
                 if (wordcount == 5) break;
@@ -280,7 +285,7 @@ public class SearchFiles {
     
     public void resultsClustering(SearchFiles sObj, int resultsCount) throws Exception
     {
-        //Cluster the documents present in TfIdfResults - KMeans
+        //Cluster the documents results present in TfIdfResults - KMeans
         
         int initialSeed; 
         Double diff = 1.0;
