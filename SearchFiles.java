@@ -202,10 +202,155 @@ public class SearchFiles {
         long endTime = System.currentTimeMillis();
         System.out.println("Time taken for Auth and Hubs "+ (double)(endTime - startTime)/1000);
         //sObj.pageRankOrdering(relMap, r, sObj);
+        
+        //Find the most functional synonym of the entered words and return it
+        scalarAssociation();
+        
         if (loopVar > 2)
         {
             sObj.resultsClustering(sObj, loopVar);
         }
+    }
+    
+    
+    void scalarAssociation()
+    {
+        
+        //Step 1 - Get a set of all words
+        Set<String> allWordsSet = new HashSet<String>();
+        int docNum;
+        for(String docId : TfIdfResults)
+        {
+            docNum = Integer.parseInt(docId);
+            for(Map.Entry<String, Double> pair : docWordsMap.get(docNum).entrySet())
+            {
+                allWordsSet.add(pair.getKey());
+            }
+        }
+        
+        //Step 2 - Fill the doc term matrix
+        int wordsSize = allWordsSet.size();
+        int tempCount ;
+        List<String> allWordList = new ArrayList<String>();
+        int[][] docTermMatrix = new int[resultsCount][wordsSize];
+        int[][] termDocMatrix = new int[wordsSize][resultsCount];
+        
+        allWordList.addAll(allWordsSet);
+        
+        for(String docId : TfIdfResults)
+        {
+            docNum = Integer.parseInt(docId);
+            for(Map.Entry<String, Double> pair : docWordsMap.get(docNum).entrySet())
+            {
+                tempCount = docTermMatrix[docNum][allWordList.indexOf(pair.getKey())]; 
+                tempCount++;
+                docTermMatrix[docNum][allWordList.indexOf(pair.getKey())] = tempCount;              
+            }
+        }
+        
+        //Step 3 - Matrix Transpose
+        for(int i=0;i<resultsCount; i++)
+        {
+            for(int j=0; j<wordsSize; j++)
+            {
+                termDocMatrix[i][j] = docTermMatrix[j][i];
+            }
+        }
+        
+
+        //Step 4 - Find the dt' * dt matrix
+        int temp = 0;
+        int[][] corMatrix = new int[wordsSize][wordsSize];        
+        
+        for(int i=0; i<wordsSize; i++)
+        {
+            for(int j=0; j<wordsSize; j++)
+            {
+                for(int k=0; k < resultsCount; k++)
+                {
+                    temp += termDocMatrix[i][k] * docTermMatrix[k][j];
+                }
+                corMatrix[i][j] = temp;
+                
+                temp = 0;
+            }
+        }
+        
+        
+        //Step 5 - Normalize correlation matrix
+        double[][] normCorMatrix = new double[wordsSize][wordsSize];        
+
+         for(int i=0;i<wordsSize; i++)
+         {
+             for(int j=0; j<wordsSize; j++)
+             {
+                 normCorMatrix[i][j] = corMatrix[i][j]/(corMatrix[i][i]+corMatrix[2][2]-corMatrix[i][j]);
+             }
+         }
+        
+         
+         //Step 6 - Find scalar matrix
+        double[][] scalarMatrix = new double[wordsSize][wordsSize];    
+        Map<String, Double> firstTermMap = new HashMap<String, Double>();
+        Map<String, Double> secondTermMap = new HashMap<String, Double>();
+        
+        for(int i=0;i<wordsSize; i++)
+        {
+            for(int j=0; j<wordsSize; j++)
+            {
+                
+                //Fill the first vector using its terms in map 1
+                for(int k =0; k<wordsSize; k++)
+                {
+                    if (normCorMatrix[i][k] > 0)
+                    {
+                        firstTermMap.put(allWordList.get(k), normCorMatrix[i][k]);
+                    }               
+                }
+                
+                //Fill the second vector using its terms in map 2
+                for(int k =0; k<wordsSize; k++)
+                {
+                    if (normCorMatrix[j][k] > 0)
+                    {
+                        secondTermMap.put(allWordList.get(k), normCorMatrix[i][k]);
+                    }               
+                }
+                
+                //Find vector similarity between ith and jth vectors    
+                scalarMatrix[i][j] = scalarVectorSimilarity(firstTermMap, secondTermMap);
+                firstTermMap.clear();
+                secondTermMap.clear();
+            }
+        }
+        
+        //Step 7 - Find the closest words to the entered query words and suggest them
+        int iIndex, jIndex;
+        double cur = 0.0, max = 0.0;
+        int maxIndex = 0;
+        List<String> assocWordsList = new ArrayList<String>();
+        
+        for(String word : inputQuery.split(" "))
+        {
+            word = word.toLowerCase();
+            if(allWordList.contains(word))
+            {
+                iIndex = allWordList.indexOf(word);
+                for(int k=0;k<wordsSize;k++)
+                {
+                    cur = scalarMatrix[iIndex][k];
+                    if(cur>max)
+                    {
+                        max = cur;
+                        maxIndex = k;
+                    }
+                }
+                assocWordsList.add(allWordList.get(maxIndex));
+            }
+        }
+        System.out.println("Query eloboration suggestions");
+        System.out.println(assocWordsList);
+        
     }
     
     void displayClusters(Map<Integer, Integer> docClusterMap) throws Exception
@@ -640,6 +785,36 @@ public class SearchFiles {
         
         return maxDiff;
     }
+    
+    Double scalarVectorSimilarity(Map<String, Double> firstTermMap,  Map<String, Double> secondTermMap)
+    {
+        // Find the vector similarity of given two vectors
+        
+        double sim = 0.0, deno = 0.0;
+        Set<String> allWordsSet  = new HashSet<String>();
+
+        for(String word : firstTermMap.keySet())
+        {
+            allWordsSet.add(word);
+        }
+        
+        for(String word : secondTermMap.keySet())
+        {
+            allWordsSet.add(word);
+        }
+        
+        for(String word: allWordsSet)
+        {
+            if(firstTermMap.containsKey(word) && secondTermMap.containsKey(word))
+            {
+                sim = sim + firstTermMap.get(word) * secondTermMap.get(word);
+            }
+        }
+        
+        deno = findCentroidTwoNorm(firstTermMap) * findCentroidTwoNorm(secondTermMap);      
+        return (sim/deno);          
+    }
+    
     
     Double findVectorSimilarity(Integer docNum, Map<String, Double> docVectorMap, Map<String, Double> centroidVectorMap, SearchFiles sObj)
     {
