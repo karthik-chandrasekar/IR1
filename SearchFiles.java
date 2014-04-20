@@ -124,52 +124,57 @@ public class SearchFiles {
         double IdfTemp;
         Map<String, Float> wordMap;
         Map<String, Integer> wordTfMap;
+        int docNum;
+        String docTerm;
 
     
         while(t.next())
         {   
-            Term te = new Term("contents", t.term().text());
+            docTerm = t.term().text();
+            Term te = new Term("contents", docTerm);
             TermDocs td = r.termDocs(te);
+            
             while(td.next())
             {
                 //Two norm values of docs based on Tf values
                 freq = 0;
-                if (twoNorm.containsKey(td.doc()))
+                docNum = td.doc();
+                if (twoNorm.containsKey(docNum))
                 {
-                    freq = twoNorm.get(td.doc());
+                    freq = twoNorm.get(docNum);
                 }
                 freq += td.freq() * td.freq();
-                twoNorm.put(td.doc(), freq);
+                twoNorm.put(docNum, freq);
                 
                //Two norm values of docs based on TfIdf values 
                IdfTemp = 0.0;
-               if (twoNormTfIdf.containsKey(td.doc()))
+               if (twoNormTfIdf.containsKey(docNum))
                {
-                   IdfTemp = twoNormTfIdf.get(td.doc());
+                   IdfTemp = twoNormTfIdf.get(docNum);
                }
                Idf = (double)(totalDocs/(double)r.docFreq(t.term()));
                Idf = td.freq() * (Math.log(Idf)/Math.log(2));
                IdfTemp += Idf * Idf;
-               twoNormTfIdf.put(td.doc(), IdfTemp);
+               twoNormTfIdf.put(docNum, IdfTemp);
                
                           
                //Populating docWordsMap to be used for clustering
                //Map{doc_id, Map{term, TfIdf}} - Data structure of docWordsMap
-               if (sObj.docWordsMap.containsKey(td.doc()))
+               if (sObj.docWordsMap.containsKey(docNum))
                {
-                   wordMap = sObj.docWordsMap.get(td.doc());
-                   wordMap.put(t.term().text(), (float)Idf);
-                   sObj.docWordsMap.put(td.doc(), wordMap); 
+                   wordMap = sObj.docWordsMap.get(docNum);
+                   wordMap.put(docTerm, (float)Idf);
+                   sObj.docWordsMap.put(docNum, wordMap);   
                }
                else
                {
                    wordMap = new HashMap<String, Float>();
-                   wordMap.put(t.term().text(), (float)Idf);
-                   sObj.docWordsMap.put(td.doc(), wordMap);
+                   wordMap.put(docTerm, (float)Idf);
+                   sObj.docWordsMap.put(docNum, wordMap);
                }   
               
             }
-            termList.add(t.term().text());
+            termList.add(docTerm);
         }
         
         long endTime = System.currentTimeMillis();
@@ -207,11 +212,11 @@ public class SearchFiles {
         //sObj.pageRankOrdering(relMap, r, sObj);
         
         //Find the most functional synonym of the entered words and return it
-        scalarAssociation();
+        //scalarAssociation();
         
         if (loopVar > 2)
         {
-            //sObj.resultsClustering(sObj, loopVar);
+            sObj.resultsClustering(sObj, loopVar);
             System.out.println("None");
         }
     }
@@ -378,8 +383,8 @@ public class SearchFiles {
         System.out.println("Step 7 - Find the closest words to the entered query words and suggest them");
 
         
-        int iIndex, jIndex;
-        double cur = 0.0, max = 0.0;
+        int iIndex;
+        float cur = 0, max = 0;
         int maxIndex = 0;
         List<String> assocWordsList = new ArrayList<String>();
         
@@ -424,6 +429,11 @@ public class SearchFiles {
         Map<Integer, Set<String>> docKeyWordsMap = new HashMap<Integer, Set<String>>();
         Map<Integer, List<String>> docHtmlWordsMap = new HashMap<Integer, List<String>>();
         
+        
+        //Temp data structures to collect the output of functions
+        List<String> neighBourWordsList;
+        Set<String> keyWordsSet;
+        
         for(Map.Entry<Integer, Integer> pair: sortedMap.entrySet())
         {
             if(docPrintCountMap.containsKey(pair.getValue()))
@@ -448,11 +458,20 @@ public class SearchFiles {
             Document d = r.document(pair.getKey());
             String url = d.getFieldable("path").stringValue();
             
-            // Add neighbour words of query in every document
-            docHtmlWordsMap.put(pair.getKey(), getNeighbourWords(pair.getKey(), url));
-            
             //Add key words of every document 
-            docKeyWordsMap.put(pair.getKey(), getKeyWords(pair.getKey()));
+            keyWordsSet = getKeyWords(pair.getKey());
+            docKeyWordsMap.put(pair.getKey(), keyWordsSet);
+            
+            // Add neighbour words of query in every document
+            neighBourWordsList = getNeighbourWords(pair.getKey(), url);
+            if (neighBourWordsList.isEmpty())
+            {
+                neighBourWordsList.addAll(keyWordsSet);
+            }
+            docHtmlWordsMap.put(pair.getKey(), neighBourWordsList);
+            
+          
+            
             if(skipFlag == 0)
             {
                 
@@ -468,8 +487,7 @@ public class SearchFiles {
             //Collect keywords to describe a cluster
             if(clusterKeyWords.containsKey(docClusterMap.get(pair.getKey())))
             {
-                tempSet = clusterKeyWords.get(docClusterMap.get(pair.getKey()));
-            
+                tempSet = clusterKeyWords.get(docClusterMap.get(pair.getKey()));            
             }
             else
             {
@@ -501,7 +519,7 @@ public class SearchFiles {
     List<String> getNeighbourWords(Integer docNum, String url)
     {
         
-        //Read the given file, collect the neighbor terms of the ever input query word and return it
+        //Read the given file, collect the neighbor terms of the every input query word and return it
         String htmlFile = htmlFilePath + url;
         String line;
         int indexCount=0;
@@ -1802,7 +1820,7 @@ public class SearchFiles {
         
         //PageRank computation
         //sObj.computePageRank(sObj, sObj.r);
-        sObj.getMemoryUsage();
+        //sObj.getMemoryUsage();
         System.out.print("Page Rank Computation is done");
         
         
