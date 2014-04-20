@@ -88,6 +88,7 @@ public class SearchFiles {
     //Data structure to hold words of each document along with its TfIdf values
     //Key - Doc id, Value - Map(Word, TfIdf)
     Map<Integer, Map<String, Double>> docWordsMap = new HashMap<Integer, Map<String, Double>>();
+    Map<Integer, Map<String, Integer>> docWordsTfMap = new HashMap<Integer, Map<String, Integer>>();
     
     int kSize = 3;
     int rCount = 3;
@@ -121,6 +122,7 @@ public class SearchFiles {
         double  Idf;
         double IdfTemp;
         Map<String, Double> wordMap;
+        Map<String, Integer> wordTfMap;
 
     
         while(t.next())
@@ -165,6 +167,8 @@ public class SearchFiles {
                    sObj.docWordsMap.put(td.doc(), wordMap);
                }   
                
+              
+               
             }
             termList.add(t.term().text());
         }
@@ -208,7 +212,8 @@ public class SearchFiles {
         
         if (loopVar > 2)
         {
-            sObj.resultsClustering(sObj, loopVar);
+            //sObj.resultsClustering(sObj, loopVar);
+            System.out.println("None");
         }
     }
     
@@ -228,13 +233,48 @@ public class SearchFiles {
             }
         }
         
+        
+        
+        //Populating docWordsTfMap to be used for scalar association clustering
+       //Map{doc_id, Map{term, Tf}} - Data structure of docWordsTfMap
+       Map<String, Integer> wordTfMap = new HashMap<String, Integer>();
+        
+       try
+       {
+           for(String word : allWordsSet)
+           {
+               Term term = new Term("contents", word);
+               TermDocs td = r.termDocs(term);
+               while(td.next())
+               {
+           
+                   if(docWordsTfMap.containsKey(td.doc()))
+                   {
+                       wordTfMap = docWordsTfMap.get(td.doc());
+                       wordTfMap.put(word, td.freq());
+                       docWordsTfMap.put(td.doc(), wordTfMap);
+                   }
+                   else
+                   {
+                       wordTfMap = new HashMap<String, Integer>();
+                       wordTfMap.put(word, td.doc());
+                       docWordsTfMap.put(td.doc(), wordTfMap);
+                   }
+               }   
+           }  
+       }
+       catch(Exception e)
+       {
+           
+       }
+        
+        
         //Step 2 - Fill the doc term matrix
         int wordsSize = allWordsSet.size();
         int tempCount ;
         List<String> allWordList = new ArrayList<String>();
         int[][] docTermMatrix = new int[resultsCount][wordsSize];
-        int[][] termDocMatrix = new int[wordsSize][resultsCount];
-        
+        int rowIndex=0;
         allWordList.addAll(allWordsSet);
         
         for(String docId : TfIdfResults)
@@ -242,13 +282,15 @@ public class SearchFiles {
             docNum = Integer.parseInt(docId);
             for(Map.Entry<String, Double> pair : docWordsMap.get(docNum).entrySet())
             {
-                tempCount = docTermMatrix[docNum][allWordList.indexOf(pair.getKey())]; 
-                tempCount++;
-                docTermMatrix[docNum][allWordList.indexOf(pair.getKey())] = tempCount;              
+                docTermMatrix[rowIndex][allWordList.indexOf(pair.getKey())] = docWordsTfMap.get(docNum).get(pair.getKey());             
             }
+            rowIndex++;
         }
         
         //Step 3 - Matrix Transpose
+        int[][] termDocMatrix = new int[wordsSize][resultsCount];
+
+        
         for(int i=0;i<resultsCount; i++)
         {
             for(int j=0; j<wordsSize; j++)
@@ -284,7 +326,7 @@ public class SearchFiles {
          {
              for(int j=0; j<wordsSize; j++)
              {
-                 normCorMatrix[i][j] = corMatrix[i][j]/(corMatrix[i][i]+corMatrix[2][2]-corMatrix[i][j]);
+                 normCorMatrix[i][j] = corMatrix[i][j]/(corMatrix[i][i]+corMatrix[j][j]-corMatrix[i][j]);
              }
          }
         
