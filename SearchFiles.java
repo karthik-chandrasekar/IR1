@@ -1,4 +1,5 @@
 package edu.asu.irs13;
+
 import org.apache.lucene.index.*;
 import java.util.*;
 import org.apache.lucene.store.*;
@@ -556,6 +557,11 @@ public class SearchFiles {
                                     continue;
                                 }
                             }
+                            
+                            //Cleaning document snippet
+                            temp = temp.replaceAll("\\<.*?>","");
+                            temp = temp.replaceAll("[^a-zA-Z ]", " ");
+                            
                             neighborList.add(temp);
                             temp = " ";
                     }
