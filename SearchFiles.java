@@ -234,8 +234,8 @@ public class SearchFiles {
         }
         
         
-        
-        //Populating docWordsTfMap to be used for scalar association clustering
+    /***    
+       //Populating docWordsTfMap to be used for scalar association clustering
        //Map{doc_id, Map{term, Tf}} - Data structure of docWordsTfMap
        Map<String, Integer> wordTfMap = new HashMap<String, Integer>();
         
@@ -267,13 +267,13 @@ public class SearchFiles {
        {
            
        }
-        
+    ***/    
         
         //Step 2 - Fill the doc term matrix
         int wordsSize = allWordsSet.size();
         int tempCount ;
         List<String> allWordList = new ArrayList<String>();
-        int[][] docTermMatrix = new int[resultsCount][wordsSize];
+        double[][] docTermMatrix = new double[resultsCount][wordsSize];
         int rowIndex=0;
         allWordList.addAll(allWordsSet);
         
@@ -282,41 +282,35 @@ public class SearchFiles {
             docNum = Integer.parseInt(docId);
             for(Map.Entry<String, Double> pair : docWordsMap.get(docNum).entrySet())
             {
-                docTermMatrix[rowIndex][allWordList.indexOf(pair.getKey())] = docWordsTfMap.get(docNum).get(pair.getKey());             
+                docTermMatrix[rowIndex][allWordList.indexOf(pair.getKey())] = docWordsMap.get(docNum).get(pair.getKey());               
             }
             rowIndex++;
         }
         
-        //Step 3 - Matrix Transpose
-        int[][] termDocMatrix = new int[wordsSize][resultsCount];
-
-        
-        for(int i=0;i<resultsCount; i++)
-        {
-            for(int j=0; j<wordsSize; j++)
-            {
-                termDocMatrix[i][j] = docTermMatrix[j][i];
-            }
-        }
+        allWordsSet = null;
+   
         
 
         //Step 4 - Find the dt' * dt matrix
-        int temp = 0;
-        int[][] corMatrix = new int[wordsSize][wordsSize];        
+        double temp = 0;
+        double[][] corMatrix = new double[wordsSize][wordsSize];        
         
-        for(int i=0; i<wordsSize; i++)
+        for(int i=0; i<resultsCount; i++)
         {
-            for(int j=0; j<wordsSize; j++)
+            for(int j=0; j<resultsCount; j++)
             {
-                for(int k=0; k < resultsCount; k++)
+                for(int k=0; k < wordsSize; k++)
                 {
-                    temp += termDocMatrix[i][k] * docTermMatrix[k][j];
+                    temp += docTermMatrix[i][k] * docTermMatrix[j][k];
                 }
                 corMatrix[i][j] = temp;
                 
                 temp = 0;
             }
         }
+        
+        //Freeing memory
+        docTermMatrix = null;
         
         
         //Step 5 - Normalize correlation matrix
@@ -330,6 +324,8 @@ public class SearchFiles {
              }
          }
         
+         //Freeing memory
+         corMatrix = null;
          
          //Step 6 - Find scalar matrix
         double[][] scalarMatrix = new double[wordsSize][wordsSize];    
