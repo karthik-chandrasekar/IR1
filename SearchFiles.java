@@ -52,8 +52,8 @@ class ResultsComparator implements Comparator<Integer> {
 
 class KeyWordsComparator implements Comparator<String> {
 
-    Map<String, Double> base;
-    public KeyWordsComparator(Map<String, Double> base) {
+    Map<String, Float> base;
+    public KeyWordsComparator(Map<String, Float> base) {
         this.base = base;
     }
 
@@ -73,6 +73,7 @@ public class SearchFiles {
     
     IndexReader r;
     
+    
     HashMap<Integer, Integer> twoNorm = new HashMap<Integer, Integer>();
     HashMap<Integer, Double> twoNormTfIdf = new HashMap<Integer, Double>();
     HashMap<Integer, Double> docPageRankMap = new HashMap<Integer, Double>();
@@ -87,7 +88,7 @@ public class SearchFiles {
 
     //Data structure to hold words of each document along with its TfIdf values
     //Key - Doc id, Value - Map(Word, TfIdf)
-    Map<Integer, Map<String, Double>> docWordsMap = new HashMap<Integer, Map<String, Double>>();
+    Map<Integer, Map<String, Float>> docWordsMap = new HashMap<Integer, Map<String, Float>>();
     Map<Integer, Map<String, Integer>> docWordsTfMap = new HashMap<Integer, Map<String, Integer>>();
     
     int kSize = 3;
@@ -107,7 +108,7 @@ public class SearchFiles {
     
     double wProb = 0.4;
     double cProb = 0.4;
-    int resultsCount = 50;
+    int resultsCount = 10;
  
     public void getTwoNorm(IndexReader r, SearchFiles sObj) throws Exception
     {
@@ -121,7 +122,7 @@ public class SearchFiles {
         int totalDocs = r.maxDoc();
         double  Idf;
         double IdfTemp;
-        Map<String, Double> wordMap;
+        Map<String, Float> wordMap;
         Map<String, Integer> wordTfMap;
 
     
@@ -157,18 +158,16 @@ public class SearchFiles {
                if (sObj.docWordsMap.containsKey(td.doc()))
                {
                    wordMap = sObj.docWordsMap.get(td.doc());
-                   wordMap.put(t.term().text(), Idf);
+                   wordMap.put(t.term().text(), (float)Idf);
                    sObj.docWordsMap.put(td.doc(), wordMap); 
                }
                else
                {
-                   wordMap = new HashMap<String, Double>();
-                   wordMap.put(t.term().text(), Idf);
+                   wordMap = new HashMap<String, Float>();
+                   wordMap.put(t.term().text(), (float)Idf);
                    sObj.docWordsMap.put(td.doc(), wordMap);
                }   
-               
               
-               
             }
             termList.add(t.term().text());
         }
@@ -222,12 +221,13 @@ public class SearchFiles {
     {
         
         //Step 1 - Get a set of all words
+        System.out.println("Step 1 - Get a set of all words");
         Set<String> allWordsSet = new HashSet<String>();
         int docNum;
         for(String docId : TfIdfResults)
         {
             docNum = Integer.parseInt(docId);
-            for(Map.Entry<String, Double> pair : docWordsMap.get(docNum).entrySet())
+            for(Map.Entry<String, Float> pair : docWordsMap.get(docNum).entrySet())
             {
                 allWordsSet.add(pair.getKey());
             }
@@ -270,19 +270,22 @@ public class SearchFiles {
     ***/    
         
         //Step 2 - Fill the doc term matrix
+        System.out.println("Step 2 - Fill the doc term matrix");
+
         int wordsSize = allWordsSet.size();
         int tempCount ;
         List<String> allWordList = new ArrayList<String>();
-        double[][] docTermMatrix = new double[resultsCount][wordsSize];
+        int[][] docTermMatrix = new int[resultsCount][wordsSize];
         int rowIndex=0;
         allWordList.addAll(allWordsSet);
         
         for(String docId : TfIdfResults)
         {
+            if (rowIndex == resultsCount)break;
             docNum = Integer.parseInt(docId);
-            for(Map.Entry<String, Double> pair : docWordsMap.get(docNum).entrySet())
+            for(Map.Entry<String, Float> pair : docWordsMap.get(docNum).entrySet())
             {
-                docTermMatrix[rowIndex][allWordList.indexOf(pair.getKey())] = docWordsMap.get(docNum).get(pair.getKey());               
+                docTermMatrix[rowIndex][allWordList.indexOf(pair.getKey())] = (docWordsMap.get(docNum).get(pair.getKey())).intValue();              
             }
             rowIndex++;
         }
@@ -292,8 +295,10 @@ public class SearchFiles {
         
 
         //Step 4 - Find the dt' * dt matrix
-        double temp = 0;
-        double[][] corMatrix = new double[wordsSize][wordsSize];        
+        System.out.println("Step 4 - Find the dt' * dt matrix");
+
+        float temp = 0;
+        float[][] corMatrix = new float[wordsSize][wordsSize];        
         
         for(int i=0; i<resultsCount; i++)
         {
@@ -314,7 +319,9 @@ public class SearchFiles {
         
         
         //Step 5 - Normalize correlation matrix
-        double[][] normCorMatrix = new double[wordsSize][wordsSize];        
+        System.out.println("Step 5 - Normalize correlation matrix");
+
+        float[][] normCorMatrix = new float[wordsSize][wordsSize];        
 
          for(int i=0;i<wordsSize; i++)
          {
@@ -327,16 +334,21 @@ public class SearchFiles {
          //Freeing memory
          corMatrix = null;
          
-         //Step 6 - Find scalar matrix
-        double[][] scalarMatrix = new double[wordsSize][wordsSize];    
-        Map<String, Double> firstTermMap = new HashMap<String, Double>();
-        Map<String, Double> secondTermMap = new HashMap<String, Double>();
-        
+        //Step 6 - Find scalar matrix
+        System.out.println("Step 6 - Find scalar matrix");
+
+        float[][] scalarMatrix = new float[wordsSize][wordsSize];    
+        Map<String, Float> firstTermMap = new HashMap<String, Float>();
+        Map<String, Float> secondTermMap = new HashMap<String, Float>();
+        System.out.println("WordSize " + wordsSize);
+        System.out.println("Size of matrix is " + wordsSize);
+
         for(int i=0;i<wordsSize; i++)
         {
+            //System.out.println("Value of i " + i);
             for(int j=0; j<wordsSize; j++)
             {
-                
+                //System.out.println("Value of j " + j);
                 //Fill the first vector using its terms in map 1
                 for(int k =0; k<wordsSize; k++)
                 {
@@ -351,7 +363,7 @@ public class SearchFiles {
                 {
                     if (normCorMatrix[j][k] > 0)
                     {
-                        secondTermMap.put(allWordList.get(k), normCorMatrix[i][k]);
+                        secondTermMap.put(allWordList.get(k), normCorMatrix[j][k]);
                     }               
                 }
                 
@@ -363,6 +375,9 @@ public class SearchFiles {
         }
         
         //Step 7 - Find the closest words to the entered query words and suggest them
+        System.out.println("Step 7 - Find the closest words to the entered query words and suggest them");
+
+        
         int iIndex, jIndex;
         double cur = 0.0, max = 0.0;
         int maxIndex = 0;
@@ -541,17 +556,17 @@ public class SearchFiles {
     
     Set<String> getKeyWords(Integer docNum)
     {
-        Map<String, Double> tempDocWords = new HashMap<String, Double>();
+        Map<String, Float> tempDocWords = new HashMap<String, Float>();
         Set<String> tempSet = new HashSet<String>(); 
         int loopVar = 0;
         
         tempDocWords = docWordsMap.get(docNum);
         
          KeyWordsComparator bvc =  new KeyWordsComparator(tempDocWords);
-         TreeMap<String, Double> sortedMap = new TreeMap<String, Double>(bvc);
+         TreeMap<String, Float> sortedMap = new TreeMap<String, Float>(bvc);
          sortedMap.putAll(tempDocWords);
         
-         for(Map.Entry<String, Double> pair: sortedMap.entrySet())
+         for(Map.Entry<String, Float> pair: sortedMap.entrySet())
          {
              if (loopVar < 10)
              {
@@ -571,15 +586,15 @@ public class SearchFiles {
         //Cluster the documents results present in TfIdfResults - KMeans
         
         int initialSeed; 
-        Double diff = 1.0;
+        float diff = 1;
         int docNum = 0;
-        double curSSE = 0.0;
-        double maxSSE = 0.0;
+        float curSSE = 0;
+        float maxSSE = 0;
         
         
-        List<Map<String, Double>> centroidList = new LinkedList<Map<String, Double>>();
-        List<Map<String, Double>> newCentroidList = new LinkedList<Map<String, Double>>();
-        List<Map<String, Double>> oldCentroidList = new LinkedList<Map<String, Double>>();
+        List<Map<String, Float>> centroidList = new LinkedList<Map<String, Float>>();
+        List<Map<String, Float>> newCentroidList = new LinkedList<Map<String, Float>>();
+        List<Map<String, Float>> oldCentroidList = new LinkedList<Map<String, Float>>();
         
         Map<Integer, Integer> docClusterMap = new HashMap<Integer, Integer>(); 
         Map<Integer, Integer> bestDocClusterMap = new HashMap<Integer, Integer>();
@@ -588,7 +603,7 @@ public class SearchFiles {
         {   
             //Get K different initial seeds  randomly 
             Set<Integer> selectedSeeds = new HashSet<Integer>();
-            diff = 1.0;
+            diff = 1;
             for(int k=0; k<sObj.kSize; k++)
             {
                 while(true)
@@ -609,31 +624,31 @@ public class SearchFiles {
                 selectedSeeds.add(initialSeed);
             }   
             
-            Map<String, Double> docVectorMap;
+            Map<String, Float> docVectorMap;
     
 
         //Iterate over the TfIdf results to find out which cluster each one belongs to.
             while(diff > 0.01)
             {
-                Double maxSim,curSim;
+                float maxSim,curSim;
                 Integer maxIndex= 0;
                 Integer index;
-                Map<Integer, Map<String, Double>> newCentroidMap = new HashMap<Integer, Map<String, Double>>();
-                Map<String, Double> curCentroidMap; 
+                Map<Integer, Map<String, Float>> newCentroidMap = new HashMap<Integer, Map<String, Float>>();
+                Map<String, Float> curCentroidMap; 
                 Map<Integer, Integer> newCentroidInstanceCountMap = new HashMap<Integer, Integer>();
-                Double curTfIdfVal;
+                float curTfIdfVal;
                 int instanceCount;
    
                 for(String docId: sObj.TfIdfResults)
                 {
                     docNum = Integer.parseInt(docId);
-                    maxSim = 0.0;
+                    maxSim = 0;
                     maxIndex = -1;
                     docVectorMap = sObj.docWordsMap.get(docNum);        
             
                     //Iterate over all the centroids to find out the one closest to this instance 
                     index = 0;
-                    for(Map<String, Double> centroidVectorMap: centroidList)
+                    for(Map<String, Float> centroidVectorMap: centroidList)
                     {
                         if (centroidVectorMap == null)continue;
                         curSim = sObj.findVectorSimilarity(docNum, docVectorMap, centroidVectorMap, sObj);
@@ -653,10 +668,10 @@ public class SearchFiles {
                     }
                     else
                     {
-                        curCentroidMap = new HashMap<String, Double>();
+                        curCentroidMap = new HashMap<String, Float>();
                     }
                     
-                    for(Map.Entry<String, Double> docEntry: docVectorMap.entrySet())
+                    for(Map.Entry<String, Float> docEntry: docVectorMap.entrySet())
                     {
                         
                         if(curCentroidMap.containsKey(docEntry.getKey()))
@@ -665,7 +680,7 @@ public class SearchFiles {
                         }
                         else
                         {
-                            curTfIdfVal = 0.0;
+                            curTfIdfVal = 0;
                         }
                         curTfIdfVal =  curTfIdfVal + docEntry.getValue();
                         curCentroidMap.put(docEntry.getKey(), curTfIdfVal);                 
@@ -689,11 +704,11 @@ public class SearchFiles {
         
                 int clusterCount = 0;
         
-                for(Map.Entry<Integer, Map<String, Double>> centroidVector : newCentroidMap.entrySet())
+                for(Map.Entry<Integer, Map<String, Float>> centroidVector : newCentroidMap.entrySet())
                 {    
                     clusterCount = newCentroidInstanceCountMap.get(centroidVector.getKey());
                     curCentroidMap = centroidVector.getValue();
-                    for(Map.Entry<String, Double> centroidWordsVector : centroidVector.getValue().entrySet())
+                    for(Map.Entry<String, Float> centroidWordsVector : centroidVector.getValue().entrySet())
                     {
                         curTfIdfVal = centroidWordsVector.getValue();
                         curTfIdfVal = curTfIdfVal % clusterCount;           
@@ -709,7 +724,7 @@ public class SearchFiles {
                 }
         
                 //Check for convergence
-                List<Double> diffList = new LinkedList<Double>();
+                List<Float> diffList = new LinkedList<Float>();
         
                 for(int i=0; i<kSize; i++)
                 {
@@ -729,7 +744,7 @@ public class SearchFiles {
                 Collections.copy(centroidList, newCentroidList);
                 newCentroidList.clear();
             }
-            curSSE = sObj.findSSE(docClusterMap, centroidList, sObj);
+            //curSSE = sObj.findSSE(docClusterMap, centroidList, sObj);
             System.out.println("Current SSE  " + curSSE);
             if (curSSE > maxSSE)
             {
@@ -740,13 +755,13 @@ public class SearchFiles {
         sObj.displayClusters(docClusterMap);
     }
     
-    Double findSSE(Map<Integer, Integer> docClusterMap, List<Map<String, Double>> oldCentroidList, SearchFiles sObj)
+    Float findSSE(Map<Integer, Integer> docClusterMap, List<Map<String, Float>> oldCentroidList, SearchFiles sObj)
     {
         //Used similarity condition to find out the tightness of the cluster
         //High similarity corresponds to high tightness
         
-        Map<Integer, Double> sseMap = new HashMap<Integer, Double>();
-        double sseVal=0.0;
+        Map<Integer, Float> sseMap = new HashMap<Integer, Float>();
+        float sseVal=0;
         
         for(Map.Entry<Integer, Integer> docInstanceMap: docClusterMap.entrySet())
         {
@@ -756,33 +771,33 @@ public class SearchFiles {
             }
             else
             {
-                sseVal = 0.0;
+                sseVal = 0;
             }
             sseVal = sseVal + sObj.getWordVectorMaxDiff(sObj.docWordsMap.get(docInstanceMap.getKey()), oldCentroidList.get(docInstanceMap.getValue()));
             sseMap.put(docInstanceMap.getValue(), sseVal);
         }
         
-        sseVal = 0.0;
+        sseVal = 0;
 
-        for(Map.Entry<Integer, Double> sseInstance: sseMap.entrySet())
+        for(Map.Entry<Integer, Float> sseInstance: sseMap.entrySet())
         {
             sseVal  = sseVal + sseInstance.getValue();
         }
         System.out.println("SSE VALUE IS" + Math.sqrt(sseVal));
-        return Math.sqrt(sseVal);
+        return (float) Math.sqrt(sseVal);
     }
     
-    Double getWordVectorMaxDiff(Map<String, Double> oldCentroidVector, Map<String, Double> newCentroidVector)
+    float getWordVectorMaxDiff(Map<String, Float> oldCentroidVector, Map<String, Float> newCentroidVector)
     {       
         if (oldCentroidVector == null || newCentroidVector == null)
-            return 0.0;
+            return 0;
         
         Set<String> allWordsSet  = new HashSet<String>();
         Set<String> centroidWordsSet  = new HashSet<String>();
         
-        Double curDiff = 0.0;
-        Double maxDiff = 0.0;
-        Double oldTfIdf, newTfIdf = 0.0;
+        float curDiff = 0;
+        float maxDiff = 0;
+        Float oldTfIdf, newTfIdf ;
         
         //Add centroid vector words to all words set
         
@@ -824,11 +839,11 @@ public class SearchFiles {
         return maxDiff;
     }
     
-    Double scalarVectorSimilarity(Map<String, Double> firstTermMap,  Map<String, Double> secondTermMap)
+    Float scalarVectorSimilarity(Map<String, Float> firstTermMap,  Map<String, Float> secondTermMap)
     {
         // Find the vector similarity of given two vectors
         
-        double sim = 0.0, deno = 0.0;
+        float sim = 0, deno = 0;
         Set<String> allWordsSet  = new HashSet<String>();
 
         for(String word : firstTermMap.keySet())
@@ -854,12 +869,12 @@ public class SearchFiles {
     }
     
     
-    Double findVectorSimilarity(Integer docNum, Map<String, Double> docVectorMap, Map<String, Double> centroidVectorMap, SearchFiles sObj)
+    Float findVectorSimilarity(Integer docNum, Map<String, Float> docVectorMap, Map<String, Float> centroidVectorMap, SearchFiles sObj)
     {
         Set<String> allWordsSet  = new HashSet<String>();
         Set<String> centroidWordsSet = new HashSet<String>();
-        double sim = 0.0;
-        double deno = 0.0;
+        float sim = 0;
+        float deno = 0;
                 
         //Add centroid vector words to all words set
         
@@ -881,18 +896,18 @@ public class SearchFiles {
             }
         }
         
-        deno = sObj.twoNormTfIdf.get(docNum) * sObj.findCentroidTwoNorm(centroidVectorMap);     
+        deno = (float) (sObj.twoNormTfIdf.get(docNum) * sObj.findCentroidTwoNorm(centroidVectorMap));       
         return (sim/deno);
     }
     
-    double findCentroidTwoNorm(Map<String, Double> centroidVectorMap)
+    Float findCentroidTwoNorm(Map<String, Float> centroidVectorMap)
     {
-        double twoNorm = 0.0;
-        for(Map.Entry<String, Double> pair: centroidVectorMap.entrySet())
+        float twoNorm = 0;
+        for(Map.Entry<String, Float> pair: centroidVectorMap.entrySet())
         {
             twoNorm = twoNorm + pair.getValue() * pair.getValue();
         }
-        return Math.sqrt(twoNorm);
+        return (float) Math.sqrt(twoNorm);
     }
     
     public void pageRankOrdering(Map<String, Double> relMap, IndexReader r, SearchFiles sObj) throws Exception
@@ -1814,7 +1829,7 @@ public class SearchFiles {
                 System.out.print("query> ");
                 continue;
             }
-                
+             
             //Tf ordering of results
             //sObj.orderUsingTf(str, r, sObj, relMapTf);
                     
