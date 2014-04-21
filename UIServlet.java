@@ -68,7 +68,6 @@ public class KarthikProject3Servlet extends HttpServlet {
             try
             {
                 SearchFiles sObj = new SearchFiles();
-                String temp = sObj.sampleTest();
                 
                 out.println("Query " + Query + " Method " + method);
                 results = sObj.servletCall(Query, method);
@@ -99,10 +98,10 @@ public class KarthikProject3Servlet extends HttpServlet {
                 e.printStackTrace();
             }
         
-            for(String docid : results)
+            /**for(String docid : results)
             {
                 out.println(docid);
-            }
+            }**/
         }   
     }
 
