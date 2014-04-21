@@ -84,6 +84,7 @@ public class SearchFiles {
     List<String> TfIdfResults = new ArrayList<String>();
     List<String> PageRankResults = new ArrayList<String>();
     List<String> AHResults = new ArrayList<String>();
+    List<String> tfIdfClusterResults = new ArrayList<String>();
     
     //Clustering
 
@@ -471,14 +472,16 @@ public class SearchFiles {
             }
             docHtmlWordsMap.put(pair.getKey(), neighBourWordsList);
             
-          
-            
+                     
             if(skipFlag == 0)
             {
                 
                 System.out.println(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/"));
                 //System.out.println(docKeyWordsMap.get(pair.getKey()));
-                System.out.println(docHtmlWordsMap.get(pair.getKey()));
+                //System.out.println(docHtmlWordsMap.get(pair.getKey()));
+                
+                //tfIdfClusterResults.add(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/") + "\n" + docHtmlWordsMap.get(pair.getKey()));
+                tfIdfClusterResults.add(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/"));
             }
             else
             {
@@ -513,6 +516,8 @@ public class SearchFiles {
         {
             System.out.println("Cluster Id  " + clusterDesc.getKey());
             System.out.println(clusterDesc.getValue());
+            
+            tfIdfClusterResults.add("Cluster Id  " + clusterDesc.getKey() + "\n" + clusterDesc.getValue());         
         }
     }
     
@@ -560,7 +565,7 @@ public class SearchFiles {
                             
                             //Cleaning document snippet
                             temp = temp.replaceAll("\\<.*?>","");
-                            temp = temp.replaceAll("[^a-zA-Z ]", " ");
+                            //temp = temp.replaceAll("[^a-zA-Z ]", " ");
                             
                             neighborList.add(temp);
                             temp = " ";
@@ -1502,6 +1507,8 @@ public class SearchFiles {
     
     public void orderUsingTfIdf(String str, IndexReader r, SearchFiles sObj, Map<String, Double> relMapTfIdf) throws Exception
     {
+        //Find the relevant results using TfIdf based vector similarity between query and docs
+        
         long startTime = System.currentTimeMillis();
 
         String[] terms = str.split("\\s+");
@@ -1510,8 +1517,7 @@ public class SearchFiles {
         double Idf;
         int totalDocs = r.maxDoc();
         String docid;
-     
-        
+             
         for(String word : terms)
         {
             Term term = new Term("contents", word);
@@ -1763,6 +1769,9 @@ public class SearchFiles {
     
     public  List<String> servletCall(String query, String method) throws Exception
     {
+        
+        //Call from servlet handled here
+        
         System.out.print("Inside sevletCalllll - beginning");
         System.out.print("Query "+ query + "method " + method );
         SearchFiles sObj = new SearchFiles();
@@ -1771,12 +1780,7 @@ public class SearchFiles {
         //Compute two norm for all the documents - Both for Tf and TfIdf
         sObj.getTwoNorm(sObj.r, sObj);
         System.out.println("Two norm value for 845 " + Math.sqrt(sObj.twoNormTfIdf.get(845)));
-        
-        //PageRank computation
-        sObj.computePageRank(sObj, sObj.r);
-        sObj.getMemoryUsage();
-        System.out.print("Page Rank Computation is overerrrrrr !!!!!");
-        
+               
         
         String str = query;
         
@@ -1807,15 +1811,14 @@ public class SearchFiles {
         {
             System.out.println("Inside VS method");
             System.out.println("Returning results of size " + sObj.TfIdfResults.size());
-            return sObj.TfIdfResults;
+            //return sObj.TfIdfResults;
+            return sObj.tfIdfClusterResults;
         }
             
        System.out.print("Inside sevletCalllll - end");
        return new ArrayList<String>();  
-
     }
     
- 
     public static void main(String[] args) throws Exception
     {
         SearchFiles sObj = new SearchFiles();
