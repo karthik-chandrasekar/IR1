@@ -244,8 +244,8 @@ public class SearchFiles {
         }
         
         
-    /***    
-       //Populating docWordsTfMap to be used for scalar association clustering
+        
+     /***  //Populating docWordsTfMap to be used for scalar association clustering
        //Map{doc_id, Map{term, Tf}} - Data structure of docWordsTfMap
        Map<String, Integer> wordTfMap = new HashMap<String, Integer>();
         
@@ -277,7 +277,7 @@ public class SearchFiles {
        {
            
        }
-    ***/    
+       ***/
         
         //Step 2 - Fill the doc term matrix
         System.out.println("Step 2 - Fill the doc term matrix");
@@ -399,8 +399,8 @@ public class SearchFiles {
 
         
         int iIndex;
-        float cur = 0, max = 0;
-        int maxIndex = 0;
+        float cur = 0, max = 0, secondMax=0;
+        int maxIndex=0, secondMaxIndex = 0;
         List<String> assocWordsList = new ArrayList<String>();
         
         for(String word : inputQuery.split(" "))
@@ -413,13 +413,22 @@ public class SearchFiles {
                 for(int k=0;k<wordsSize;k++)
                 {
                     cur = scalarMatrix[iIndex][k];
-                    if(cur>max)
+                    
+                    if(cur>max)// We shud consider second max similar as first will be same word
                     {
+                        secondMax = max;
+                        secondMaxIndex = maxIndex;
                         max = cur;
                         maxIndex = k;
                     }
+                    else if (cur>secondMax)
+                    {
+                        secondMax = cur;
+                        secondMaxIndex = k;
+                    }                   
+                
                 }
-                assocWordsList.add(allWordList.get(maxIndex));
+                assocWordsList.add(allWordList.get(secondMaxIndex));
             }
             System.out.println("Max value " + max);
         }
