@@ -79,10 +79,11 @@ public class KarthikProject3Servlet extends HttpServlet {
 
                 for(String result : results)
                 {
-                    out.println(result);
-                    filePath = localFilePath + result;
-                    outputBuf.append("<a href="+filePath+">" + result + "</a>" + "<br>");
-                    //outputBuf.append("<p>"+result+"</p1>");
+                    //out.println(result);
+                    //filePath = localFilePath + result;
+                    filePath = result;
+                    //outputBuf.append("<a href="+filePath+">" + result + "</a>" + "<br>");
+                    outputBuf.append("<p>"+result+"</p1>");
                 }
                 
                 out.println("results are about to come");
