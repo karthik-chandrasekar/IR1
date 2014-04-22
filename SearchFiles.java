@@ -86,6 +86,9 @@ public class SearchFiles {
     List<String> AHResults = new ArrayList<String>();
     List<String> tfIdfClusterResults = new ArrayList<String>();
     
+    float[][] corMatrix ;        
+
+    
     //Clustering
 
     //Data structure to hold words of each document along with its TfIdf values
@@ -110,7 +113,7 @@ public class SearchFiles {
     
     double wProb = 0.4;
     double cProb = 0.4;
-    int resultsCount = 10;
+    int resultsCount = 5;
  
     public void getTwoNorm(IndexReader r, SearchFiles sObj) throws Exception
     {
@@ -214,12 +217,12 @@ public class SearchFiles {
         //sObj.pageRankOrdering(relMap, r, sObj);
         
         //Find the most functional synonym of the entered words and return it
-        //scalarAssociation();
+        scalarAssociation();
         
         if (loopVar > 2)
         {
-            sObj.resultsClustering(sObj, loopVar);
-            System.out.println("None");
+            //sObj.resultsClustering(sObj, loopVar);
+            //System.out.println("None");
         }
     }
     
@@ -280,7 +283,6 @@ public class SearchFiles {
         System.out.println("Step 2 - Fill the doc term matrix");
 
         int wordsSize = allWordsSet.size();
-        int tempCount ;
         List<String> allWordList = new ArrayList<String>();
         int[][] docTermMatrix = new int[resultsCount][wordsSize];
         int rowIndex=0;
@@ -300,30 +302,34 @@ public class SearchFiles {
         allWordsSet = null;
    
         
-
         //Step 4 - Find the dt' * dt matrix
         System.out.println("Step 4 - Find the dt' * dt matrix");
 
-        float temp = 0;
-        float[][] corMatrix = new float[wordsSize][wordsSize];        
-        
-        for(int i=0; i<resultsCount; i++)
+        corMatrix = new float[wordsSize][wordsSize];
+        for(int i=0; i<wordsSize; i++)
         {
-            for(int j=0; j<resultsCount; j++)
+            for(int j=0; j<wordsSize; j++)
             {
-                for(int k=0; k < wordsSize; k++)
+                for(int k=0; k < resultsCount; k++)
                 {
-                    temp += docTermMatrix[i][k] * docTermMatrix[j][k];
+                    corMatrix[j][i] += docTermMatrix[k][i] * docTermMatrix[k][j];
                 }
-                corMatrix[i][j] = temp;
-                
-                temp = 0;
             }
         }
+               
+        
+        //Just print corMatrix
+        
+        /**for(int i=0;i<wordsSize; i++)
+        {
+            for(int j=0; j<wordsSize; j++)
+            {
+                System.out.println("Matrix" + corMatrix[i][j]);
+            }
+        }**/
         
         //Freeing memory
         docTermMatrix = null;
-        
         
         //Step 5 - Normalize correlation matrix
         System.out.println("Step 5 - Normalize correlation matrix");
@@ -334,7 +340,12 @@ public class SearchFiles {
          {
              for(int j=0; j<wordsSize; j++)
              {
-                 normCorMatrix[i][j] = corMatrix[i][j]/(corMatrix[i][i]+corMatrix[j][j]-corMatrix[i][j]);
+                 //System.out.println("After nulling" + corMatrix[i][j]);
+
+                 normCorMatrix[i][j] = (float)corMatrix[i][j]/(float)(corMatrix[i][i]+corMatrix[j][j]-corMatrix[i][j]);
+                //System.out.println("Num" + corMatrix[i][j]);
+                //System.out.println("Deno" + (corMatrix[i][i]+corMatrix[j][j]-corMatrix[i][j]));
+                 //System.out.println("Norm Matrix" + normCorMatrix[i][j]);
              }
          }
         
@@ -359,6 +370,7 @@ public class SearchFiles {
                 //Fill the first vector using its terms in map 1
                 for(int k =0; k<wordsSize; k++)
                 {
+
                     if (normCorMatrix[i][k] > 0)
                     {
                         firstTermMap.put(allWordList.get(k), normCorMatrix[i][k]);
@@ -381,6 +393,7 @@ public class SearchFiles {
             }
         }
         
+                    
         //Step 7 - Find the closest words to the entered query words and suggest them
         System.out.println("Step 7 - Find the closest words to the entered query words and suggest them");
 
@@ -393,6 +406,7 @@ public class SearchFiles {
         for(String word : inputQuery.split(" "))
         {
             word = word.toLowerCase();
+            max = 0;
             if(allWordList.contains(word))
             {
                 iIndex = allWordList.indexOf(word);
@@ -407,10 +421,10 @@ public class SearchFiles {
                 }
                 assocWordsList.add(allWordList.get(maxIndex));
             }
+            System.out.println("Max value " + max);
         }
         System.out.println("Query eloboration suggestions");
-        System.out.println(assocWordsList);
-        
+        System.out.println(assocWordsList);         
     }
     
     void displayClusters(Map<Integer, Integer> docClusterMap) throws Exception
