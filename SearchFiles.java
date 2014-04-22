@@ -426,6 +426,7 @@ public class SearchFiles {
         int wordcount = 0;
         int docCount =0, skipFlag=0;
         Map<Integer, Integer> docPrintCountMap  = new HashMap<Integer, Integer>(); 
+        String tempStr="";
 
         //Collect high TfIdf value words
         Map<Integer, Set<String>> docKeyWordsMap = new HashMap<Integer, Set<String>>();
@@ -478,10 +479,22 @@ public class SearchFiles {
                 
                 System.out.println(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/"));
                 //System.out.println(docKeyWordsMap.get(pair.getKey()));
-                //System.out.println(docHtmlWordsMap.get(pair.getKey()));
                 
-                //tfIdfClusterResults.add(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/") + "\n" + docHtmlWordsMap.get(pair.getKey()));
-                tfIdfClusterResults.add(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/"));
+                //tfIdfClusterResults.add(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/"));
+                
+                tempStr = " ";
+                int snipCount =0;
+                for(String snip : docHtmlWordsMap.get(pair.getKey()))
+                {
+                    if(snipCount == 3){break;}
+                    snip = snip.trim();
+                    tempStr = tempStr + " , " + snip;
+                    snipCount ++;
+
+                }
+                tfIdfClusterResults.add(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/") + "\n" + tempStr);
+                //System.out.println(tempStr);
+
             }
             else
             {
@@ -1512,6 +1525,7 @@ public class SearchFiles {
         long startTime = System.currentTimeMillis();
 
         String[] terms = str.split("\\s+");
+        
         int queryLen = terms.length;
         double relTfIdf;
         double Idf;
@@ -1520,6 +1534,7 @@ public class SearchFiles {
              
         for(String word : terms)
         {
+            System.out.println("Query words " + word);
             Term term = new Term("contents", word);
             TermDocs tdocs = r.termDocs(term);
             
@@ -1773,7 +1788,8 @@ public class SearchFiles {
         //Call from servlet handled here
         
         System.out.print("Inside sevletCalllll - beginning");
-        System.out.print("Query "+ query + "method " + method );
+        query = query.trim();
+        System.out.print("Query  "+ query + "  method " + method );
         SearchFiles sObj = new SearchFiles();
         sObj.r = IndexReader.open(FSDirectory.open(new File(indexPath)));
         
@@ -1782,13 +1798,15 @@ public class SearchFiles {
         System.out.println("Two norm value for 845 " + Math.sqrt(sObj.twoNormTfIdf.get(845)));
                
         
-        String str = query;
         
             long startTime = System.currentTimeMillis();
-            str = str.toLowerCase();
+            query = query.toLowerCase();
+            
+            sObj.inputQuery = query;
+
            
             HashMap<String, Double> relMapTfIdf = new HashMap<String, Double>();        
-            sObj.orderUsingTfIdf(str, sObj.r, sObj, relMapTfIdf);
+            sObj.orderUsingTfIdf(query, sObj.r, sObj, relMapTfIdf);
             
             long endTime = System.currentTimeMillis();
             
