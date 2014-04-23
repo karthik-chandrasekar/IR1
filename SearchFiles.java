@@ -103,7 +103,9 @@ public class SearchFiles {
     int kSize = 3;
     int rCount = 3;
        
-    String indexPath = "/Users/karthikchandrasekar/Desktop/SecondSem/IR/Project1/irs13/index";
+    //String indexPath = "/Users/karthikchandrasekar/Desktop/SecondSem/IR/Project1/irs13/index";
+    String indexPath = "/Users/karthikchandrasekar/Desktop/SecondSem/IR/IR-NewIndex/IR-IndexedFiles/result3/cleanedHtmlFiles/index";
+    
     String htmlFilePath = "/Users/karthikchandrasekar/Desktop/SecondSem/IR/Project1/irs13/result3/";
     
     double [] pageRankVector = new double[docSize]; 
@@ -255,7 +257,7 @@ public class SearchFiles {
         }
         
             
-     /***  //Populating docWordsTfMap to be used for scalar association clustering
+      //Populating docWordsTfMap to be used for scalar association clustering
        //Map{doc_id, Map{term, Tf}} - Data structure of docWordsTfMap
        Map<String, Integer> wordTfMap = new HashMap<String, Integer>();
         
@@ -287,8 +289,7 @@ public class SearchFiles {
        {
            
        }
-       ***/
-        
+            
         //Step 2 - Fill the doc term matrix
         System.out.println("Step 2 - Fill the doc term matrix");
 
@@ -304,9 +305,9 @@ public class SearchFiles {
         {
             if (rowIndex == resultsCount)break;
             docNum = Integer.parseInt(docId);
-            for(Map.Entry<String, Float> pair : docWordsMap.get(docNum).entrySet())
+            for(Map.Entry<String, Integer> pair : docWordsTfMap.get(docNum).entrySet())
             {
-                docTermMatrix[rowIndex][allWordList.indexOf(pair.getKey())] = (docWordsMap.get(docNum).get(pair.getKey())).intValue();              
+                docTermMatrix[rowIndex][allWordList.indexOf(pair.getKey())] = (docWordsTfMap.get(docNum).get(pair.getKey())).intValue();            
             }
             rowIndex++;
         }
@@ -606,7 +607,7 @@ public class SearchFiles {
             
             for(String keyword: docKeyWordsMap.get(pair.getKey()))
             {
-                if (wordcount == 5) break;
+                if (wordcount == 10) break;
                 tempSet.add(keyword);
                 wordcount ++;
             }
@@ -668,10 +669,9 @@ public class SearchFiles {
                 line = line.toLowerCase();
                 inputQuery = inputQuery.toLowerCase();
             
-                line  = Jsoup.parse(line).text();
-                System.out.println(line);
-                //System.out.println(line);
-                //System.out.println(inputQuery);
+                //As the index is created over the cleaned input files, cleaning at this part is not necessary
+                //line  = Jsoup.parse(line).text();
+            
                 
                 tempList = Arrays.asList(line.split(" "));
                 for (String queryWord : inputQuery.split(" "))
@@ -680,7 +680,7 @@ public class SearchFiles {
                     {                       
                             indexCount = tempList.indexOf(queryWord);
                             
-                            for(int inIndex=indexCount-2;inIndex<indexCount+3;inIndex++)
+                            for(int inIndex=indexCount-4;inIndex<indexCount+3;inIndex++)
                             {
                                 try
                                 {
