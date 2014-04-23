@@ -368,101 +368,63 @@ public class SearchFiles {
          System.out.println("Step 6 - Skipping scalar matrix");
          
          
-        /***         
-        //Step 6 - Find scalar matrix
-        System.out.println("Step 6 - Find scalar matrix");
+        //Step 6 - Compute scalar matrix on the fly for every word and find the closest words to the entered query words and suggest them
 
-        float[][] scalarMatrix = new float[wordsSize][wordsSize];    
+
         Map<String, Float> firstTermMap = new HashMap<String, Float>();
         Map<String, Float> secondTermMap = new HashMap<String, Float>();
-        System.out.println("WordSize " + wordsSize);
-        System.out.println("Size of matrix is " + wordsSize);
-
-        for(int i=0;i<wordsSize; i++)
-        {
-            //System.out.println("Value of i " + i);
-            for(int j=0; j<wordsSize; j++)
-            {
-                //System.out.println("Value of j " + j);
-                //Fill the first vector using its terms in map 1
-                for(int k =0; k<wordsSize; k++)
-                {
-
-                    if (normCorMatrix[i][k] > 0)
-                    {
-                        firstTermMap.put(allWordList.get(k), normCorMatrix[i][k]);
-                    }               
-                }
-                
-                //Fill the second vector using its terms in map 2
-                for(int k =0; k<wordsSize; k++)
-                {
-                    if (normCorMatrix[j][k] > 0)
-                    {
-                        secondTermMap.put(allWordList.get(k), normCorMatrix[j][k]);
-                    }               
-                }
-                
-                //Find vector similarity between ith and jth vectors    
-                scalarMatrix[i][j] = scalarVectorSimilarity(firstTermMap, secondTermMap);
-                firstTermMap.clear();
-                secondTermMap.clear();
-            }
-        }
-                
-                    ***/
-                    
-        //Step 7 - Find the closest words to the entered query words and suggest them
-        System.out.println("Step 7 - Find the closest words to the entered query words and suggest them");
-
-        
         int iIndex=0;
-        float cur = 0, max = 0, secondMax=0;
-        int maxIndex=0, secondMaxIndex = 0;
+        float cur, max;
+        int maxIndex;
         List<String> assocWordsList = new ArrayList<String>();
-        
+                
         for(String word : inputQuery.split(" "))
         {
             word = word.toLowerCase().trim();
-            System.out.println(word);
-            max = 0;
-            secondMax = 0;
+            
+            System.out.println("Query word " + word);
+            
             if(allWordList.contains(word))
             {
                 iIndex = allWordList.indexOf(word);
-                System.out.println("iIndex " + iIndex);
+            }
+            
+            firstTermMap.clear();
 
-                for(int k=0;k<wordsSize;k++)
-                {
-                    //cur = scalarMatrix[iIndex][k];
-                    cur = normCorMatrix[iIndex][k];
-                    
-                    //System.out.println("Cur " + cur + " iIndex " + iIndex);
-                    //System.out.println("Max " + max);
-                    
-                    if(cur>max)// We shud consider second max similar as first will be same word
-                    {
-                        secondMax = max;
-                        secondMaxIndex = maxIndex;
-                        max = cur;
-                        maxIndex = k;
-                    }
-                    else if (cur>secondMax)
-                    {
-                        secondMax = cur;
-                        secondMaxIndex = k;
-                    }                   
-                
-                }
-                assocWordsList.add(allWordList.get(secondMaxIndex));
-            }
-            else 
+            for(int k =0; k<wordsSize; k++)
             {
-                System.out.println("Search term is not present in document !!!! Pls check ");
+
+                if (normCorMatrix[iIndex][k] > 0)
+                {
+                    firstTermMap.put(allWordList.get(k), normCorMatrix[iIndex][k]);
+                }               
             }
-            System.out.println("Max value " + max);
+            
+            cur = 0; max=0; maxIndex=0;
+            
+            for(int i=0; i<wordsSize; i++)
+            {                           
+                for(int k =0; k<wordsSize; k++)
+                {
+                    if (normCorMatrix[i][k] > 0)
+                    {
+                        secondTermMap.put(allWordList.get(k), normCorMatrix[i][k]);
+                    }               
+                }
+                            
+                cur = scalarVectorSimilarity(firstTermMap, secondTermMap);
+                
+                if(cur>max && i != iIndex)
+                {
+                    max = cur;
+                    maxIndex = i;
+                }
+                
+                secondTermMap.clear();              
+            }
+            assocWordsList.add(allWordList.get(maxIndex));      
         }
-        System.out.println("Query eloboration suggestions");
+        
         System.out.println(assocWordsList);   
         
         String assocWordString = null;
