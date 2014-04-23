@@ -113,7 +113,7 @@ public class SearchFiles {
     
     double wProb = 0.4;
     double cProb = 0.4;
-    int resultsCount = 5;
+    int resultsCount = 25;
  
     public void getTwoNorm(IndexReader r, SearchFiles sObj) throws Exception
     {
@@ -190,6 +190,7 @@ public class SearchFiles {
     public void showResults(Map<String, Double> relMap, IndexReader r, SearchFiles sObj) throws Exception
     {
         
+        sObj.TfIdfResults.clear();
         //Override the comparator to sort the relMap by value. 
         ValueComparator bvc =  new ValueComparator(relMap);
         TreeMap<String,Double> sortedMap = new TreeMap<String,Double>(bvc);
@@ -288,6 +289,8 @@ public class SearchFiles {
         int rowIndex=0;
         allWordList.addAll(allWordsSet);
         
+        System.out.println(TfIdfResults);
+        
         for(String docId : TfIdfResults)
         {
             if (rowIndex == resultsCount)break;
@@ -352,6 +355,10 @@ public class SearchFiles {
          //Freeing memory
          corMatrix = null;
          
+         System.out.println("Step 6 - Skipping scalar matrix");
+         
+         
+        /***         
         //Step 6 - Find scalar matrix
         System.out.println("Step 6 - Find scalar matrix");
 
@@ -392,7 +399,8 @@ public class SearchFiles {
                 secondTermMap.clear();
             }
         }
-        
+                
+                    ***/
                     
         //Step 7 - Find the closest words to the entered query words and suggest them
         System.out.println("Step 7 - Find the closest words to the entered query words and suggest them");
@@ -412,9 +420,15 @@ public class SearchFiles {
             if(allWordList.contains(word))
             {
                 iIndex = allWordList.indexOf(word);
+                System.out.println("iIndex " + iIndex);
+
                 for(int k=0;k<wordsSize;k++)
                 {
-                    cur = scalarMatrix[iIndex][k];
+                    //cur = scalarMatrix[iIndex][k];
+                    cur = normCorMatrix[iIndex][k];
+                    
+                    //System.out.println("Cur " + cur + " iIndex " + iIndex);
+                    //System.out.println("Max " + max);
                     
                     if(cur>max)// We shud consider second max similar as first will be same word
                     {
