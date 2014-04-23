@@ -398,15 +398,17 @@ public class SearchFiles {
         System.out.println("Step 7 - Find the closest words to the entered query words and suggest them");
 
         
-        int iIndex;
+        int iIndex=0;
         float cur = 0, max = 0, secondMax=0;
         int maxIndex=0, secondMaxIndex = 0;
         List<String> assocWordsList = new ArrayList<String>();
         
         for(String word : inputQuery.split(" "))
         {
-            word = word.toLowerCase();
+            word = word.toLowerCase().trim();
+            System.out.println(word);
             max = 0;
+            secondMax = 0;
             if(allWordList.contains(word))
             {
                 iIndex = allWordList.indexOf(word);
@@ -429,6 +431,10 @@ public class SearchFiles {
                 
                 }
                 assocWordsList.add(allWordList.get(secondMaxIndex));
+            }
+            else 
+            {
+                System.out.println("Search term is not present in document !!!! Pls check ");
             }
             System.out.println("Max value " + max);
         }
