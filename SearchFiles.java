@@ -86,6 +86,9 @@ public class SearchFiles {
     List<String> AHResults = new ArrayList<String>();
     List<String> tfIdfClusterResults = new ArrayList<String>();
     
+    Map<String, String> UIResults = new HashMap<String, String>();
+    List<Map<String, String>> UIResultsList = new ArrayList<Map<String, String>>();
+    
     float[][] corMatrix ;        
 
     
@@ -460,7 +463,22 @@ public class SearchFiles {
         System.out.println("Query eloboration suggestions");
         System.out.println(assocWordsList);   
         
-        sObj.tfIdfClusterResults.add("Consider adding these words" +assocWordsList);
+        String assocWordString = null;
+        for(String assocWord : assocWordsList)
+        {
+            if(assocWordString == null)
+            {
+                assocWordString = assocWord;
+            }
+            else
+            {
+                assocWordString = assocWordString + " , " +assocWord;
+            }           
+        }       
+        
+        sObj.UIResults.put("QE", assocWordString);
+        sObj.UIResultsList.add(UIResults);
+        //sObj.tfIdfClusterResults.add("Consider adding these words" +assocWordsList);
     }
     
     void displayClusters(Map<Integer, Integer> docClusterMap) throws Exception
@@ -532,18 +550,40 @@ public class SearchFiles {
                 
                 //tfIdfClusterResults.add(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/"));
                 
-                tempStr = " ";
+                tempStr = null;
                 int snipCount =0;
                 for(String snip : docHtmlWordsMap.get(pair.getKey()))
                 {
                     if(snipCount == 3){break;}
                     snip = snip.trim();
-                    tempStr = tempStr + " , " + snip;
+                    
+                    if(tempStr == null)
+                    {
+                        tempStr = snip;
+                    }
+                    else
+                    {
+                        tempStr = tempStr + " , " + snip;
+                    }
                     snipCount ++;
 
                 }
-                tfIdfClusterResults.add(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/") + "\n" + tempStr);
+                //tfIdfClusterResults.add(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/") + "\n" + tempStr);
+                //tfIdfClusterResults.add(pair.getValue()+" "+pair.getKey() + " - " + url.replace("%%", "/") + "\n" + tempStr);
                 //System.out.println(tempStr);
+                
+                UIResults.put("CID", String.valueOf(pair.getValue()));
+                UIResults.put("DID", String.valueOf(pair.getKey()));                
+                UIResults.put("SNIP", tempStr);
+                UIResults.put("HREF", url.replace("%%", "/"));
+                
+                System.out.println("CID " +  String.valueOf(pair.getValue()));
+                System.out.println("DID " +  String.valueOf(pair.getKey()));
+                System.out.println("SNIP " +  tempStr);
+
+                
+                UIResultsList.add(UIResults);
+                UIResults = new HashMap<String, String>();
 
             }
             else
@@ -570,6 +610,7 @@ public class SearchFiles {
                 wordcount ++;
             }
             
+                     
             clusterKeyWords.put(docClusterMap.get(pair.getKey()), tempSet);
             
        }
@@ -580,7 +621,29 @@ public class SearchFiles {
             System.out.println("Cluster Id  " + clusterDesc.getKey());
             System.out.println(clusterDesc.getValue());
             
-            tfIdfClusterResults.add("Cluster Id  " + clusterDesc.getKey() + "\n" + clusterDesc.getValue());         
+            //tfIdfClusterResults.add("Cluster Id  " + clusterDesc.getKey() + "\n" + clusterDesc.getValue());
+            UIResults = new HashMap<String, String>();
+            UIResults.put("DID", String.valueOf(-1));
+            UIResults.put("CID", String.valueOf(clusterDesc.getKey()));
+            
+            String clusterSnippet=null;
+
+             for(String clusterSnip : clusterDesc.getValue())
+            {
+                if(clusterSnippet == null)
+                {
+                    clusterSnippet = clusterSnip;
+                }
+                else
+                {
+                    clusterSnippet = clusterSnippet + "  -  " + clusterSnip;
+                }   
+            }
+             
+             
+            UIResults.put("SNIP", clusterSnippet);
+            UIResultsList.add(UIResults);
+            //UIResults.clear();            
         }
     }
     
@@ -682,8 +745,7 @@ public class SearchFiles {
         int docNum = 0;
         float curSSE = 0;
         float maxSSE = 0;
-        
-        
+            
         List<Map<String, Float>> centroidList = new LinkedList<Map<String, Float>>();
         List<Map<String, Float>> newCentroidList = new LinkedList<Map<String, Float>>();
         List<Map<String, Float>> oldCentroidList = new LinkedList<Map<String, Float>>();
@@ -1832,7 +1894,7 @@ public class SearchFiles {
     }
 
     
-    public  List<String> servletCall(String query, String method, int QEval) throws Exception
+    public  List<Map<String, String>> servletCall(String query, String method, int QEval) throws Exception
     {
         
         //Call from servlet handled here
@@ -1851,14 +1913,12 @@ public class SearchFiles {
         {
             sObj.queryElborate = 1;
         }
-        
-        
+                
             long startTime = System.currentTimeMillis();
             query = query.toLowerCase();
             
             sObj.inputQuery = query;
-
-           
+          
             HashMap<String, Double> relMapTfIdf = new HashMap<String, Double>();        
             sObj.orderUsingTfIdf(query, sObj.r, sObj, relMapTfIdf);
             
@@ -1867,7 +1927,8 @@ public class SearchFiles {
             System.out.println("Time taken to get results "+ (double)(endTime - startTime)/1000);
       
             System.out.println("Query "+ query + " method " + method );    
-        if(method.equals("PR"))
+            
+        /**if(method.equals("PR"))
         {
             System.out.println("Inside PR method");
             System.out.println("Returning results of size " + sObj.PageRankResults.size());
@@ -1878,17 +1939,24 @@ public class SearchFiles {
             System.out.println("Inside AH method");
             System.out.println("Returning results of size " + sObj.AHResults.size());
             return sObj.AHResults;
-        }
-        else if (method.equals("VS"))
+        }**/
+        if (method.equals("VS"))
         {
             System.out.println("Inside VS method");
             System.out.println("Returning results of size " + sObj.TfIdfResults.size());
             //return sObj.TfIdfResults;
-            return sObj.tfIdfClusterResults;
+            return sObj.UIResultsList;
+
+        }
+        
+        else if(sObj.queryElborate == 1)
+        {
+            return sObj.UIResultsList;
         }
             
        System.out.print("Inside sevletCalllll - end");
-       return new ArrayList<String>();  
+    return sObj.UIResultsList;
+
     }
     
     public static void main(String[] args) throws Exception

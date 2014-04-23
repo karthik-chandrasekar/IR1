@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -41,10 +42,9 @@ public class KarthikProject3Servlet extends HttpServlet {
         String Query = request.getParameter("Query");
         String method = "";
         StringBuilder outputBuf = new StringBuilder();
-        String localFilePath = "/Users/karthikchandrasekar/Downloads/temp/result3";
         String filePath = "";
         
-        List<String> results = new ArrayList<String>();
+        List<Map<String, String>> resultMapList;
         
         if (Query == null)
         {
@@ -81,19 +81,94 @@ public class KarthikProject3Servlet extends HttpServlet {
                 
                 
                 out.println("Query " + Query + " Method " + method + " QEval " + QEval);
-                results = sObj.servletCall(Query, method, QEval);
-                
-                out.println("Size of returned list is" + results.size());
+                //results = sObj.servletCall(Query, method, QEval);
+                resultMapList = sObj.servletCall(Query, method, QEval);
                 
                 outputBuf.append("<html>");
                 outputBuf.append("<body>");
 
-                for(String result : results)
+                /***for(String result : results)
                 {
                     filePath = result;
                     //outputBuf.append("<a href="+filePath+">" + result + "</a>" + "<br>");
                     outputBuf.append("<p>"+result+"</p1>");
+                }***/
+                
+                String para;
+                String resultLink;
+                String qe;
+                
+                for(Map<String, String> resultPair : resultMapList)
+                {
+                    para = null;
+                    resultLink = null;
+                    qe = null;
+                    
+                    if(resultPair.containsKey("DID"))
+                    {
+                        if(resultPair.get("DID").equals("-1"))
+                        {
+                        }
+                        else
+                        {
+                            para = resultPair.get("DID");
+                            para = para + " - ";
+                        }
+                    }
+                    
+                    if(resultPair.containsKey("CID"))
+                    {
+                        if(para == null)
+                        {
+                            para = resultPair.get("CID");
+                        }
+                        else
+                        {
+                            para = para + "  " + resultPair.get("CID");
+                        }
+                        para = para + " - ";
+                    }
+                    
+                    if(resultPair.containsKey("SNIP"))
+                    {
+                        if(para == null)
+                        {
+                            para = resultPair.get("SNIP");
+                        }
+                        else
+                        {
+                            para = para + "  " + resultPair.get("SNIP");
+                        }
+                    }
+                    
+                    if (resultPair.containsKey("HREF"))
+                    {
+                        resultLink = resultPair.get("HREF");
+                    }
+                    
+    
+                    if (resultPair.containsKey("QE"))
+                    {
+                        qe = resultPair.get("QE");
+                    }
+                    
+                    
+                    if(para != null)
+                    {
+                        outputBuf.append("<p>"+para+"</p1>"+"<br>");
+                    }
+                    if(resultLink != null)
+                    {
+                        outputBuf.append("<a href="+filePath+">" + resultLink + "</a>");
+                    }
+                    
+                    if(qe != null)
+                    {
+                        outputBuf.append("<p>"+qe+"</p1>");
+                    }
+                    
                 }
+                                
                 
                 out.println("results are about to come");
                 outputBuf.append("</body>");
