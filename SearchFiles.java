@@ -115,6 +115,10 @@ public class SearchFiles {
     double cProb = 0.4;
     int resultsCount = 25;
  
+    //Query elaboration flag
+    int queryElborate = 0;
+    
+    
     public void getTwoNorm(IndexReader r, SearchFiles sObj) throws Exception
     {
         
@@ -218,17 +222,19 @@ public class SearchFiles {
         //sObj.pageRankOrdering(relMap, r, sObj);
         
         //Find the most functional synonym of the entered words and return it
-        scalarAssociation();
-        
-        if (loopVar > 2)
+        // Call this only when queryElaborate flag is set
+        if (sObj.queryElborate == 1)
+        {   
+            scalarAssociation(sObj);
+        }
+        else if (loopVar > 2)
         {
-            //sObj.resultsClustering(sObj, loopVar);
-            //System.out.println("None");
+            sObj.resultsClustering(sObj, loopVar);
         }
     }
     
     
-    void scalarAssociation()
+    void scalarAssociation(SearchFiles sObj)
     {
         
         //Step 1 - Get a set of all words
@@ -244,8 +250,7 @@ public class SearchFiles {
             }
         }
         
-        
-        
+            
      /***  //Populating docWordsTfMap to be used for scalar association clustering
        //Map{doc_id, Map{term, Tf}} - Data structure of docWordsTfMap
        Map<String, Integer> wordTfMap = new HashMap<String, Integer>();
@@ -453,7 +458,9 @@ public class SearchFiles {
             System.out.println("Max value " + max);
         }
         System.out.println("Query eloboration suggestions");
-        System.out.println(assocWordsList);         
+        System.out.println(assocWordsList);   
+        
+        sObj.tfIdfClusterResults.add("Consider adding these words" +assocWordsList);
     }
     
     void displayClusters(Map<Integer, Integer> docClusterMap) throws Exception
@@ -1825,7 +1832,7 @@ public class SearchFiles {
     }
 
     
-    public  List<String> servletCall(String query, String method) throws Exception
+    public  List<String> servletCall(String query, String method, int QEval) throws Exception
     {
         
         //Call from servlet handled here
@@ -1840,6 +1847,10 @@ public class SearchFiles {
         sObj.getTwoNorm(sObj.r, sObj);
         System.out.println("Two norm value for 845 " + Math.sqrt(sObj.twoNormTfIdf.get(845)));
                
+        if (QEval == 1)
+        {
+            sObj.queryElborate = 1;
+        }
         
         
             long startTime = System.currentTimeMillis();

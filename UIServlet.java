@@ -37,6 +37,7 @@ public class KarthikProject3Servlet extends HttpServlet {
         String PR = request.getParameter("PR");
         String AH = request.getParameter("AH");
         String VS = request.getParameter("VS");
+        String QE = request.getParameter("QE");
         String Query = request.getParameter("Query");
         String method = "";
         StringBuilder outputBuf = new StringBuilder();
@@ -65,12 +66,22 @@ public class KarthikProject3Servlet extends HttpServlet {
                 method = VS;
             }       
             
+            
             try
             {
                 SearchFiles sObj = new SearchFiles();
+
+                //Set query elaboration flag is it is checked by user
+                int QEval=0;
                 
-                out.println("Query " + Query + " Method " + method);
-                results = sObj.servletCall(Query, method);
+                if(QE !=null)
+                {
+                    QEval = 1;
+                }
+                
+                
+                out.println("Query " + Query + " Method " + method + " QEval " + QEval);
+                results = sObj.servletCall(Query, method, QEval);
                 
                 out.println("Size of returned list is" + results.size());
                 
@@ -79,8 +90,6 @@ public class KarthikProject3Servlet extends HttpServlet {
 
                 for(String result : results)
                 {
-                    //out.println(result);
-                    //filePath = localFilePath + result;
                     filePath = result;
                     //outputBuf.append("<a href="+filePath+">" + result + "</a>" + "<br>");
                     outputBuf.append("<p>"+result+"</p1>");
