@@ -529,7 +529,9 @@ public class SearchFiles {
             docPrintCountMap.put(pair.getValue(), docCount);
             
             Document d = r.document(pair.getKey());
-            String url = d.getFieldable("path").stringValue();
+            String url = d.getFieldable("path").stringValue(); 
+            url = url.substring(1, url.length());
+            System.out.println("Url " + url);
             
             //Add key words of every document 
             keyWordsSet = getKeyWords(pair.getKey());
@@ -664,13 +666,14 @@ public class SearchFiles {
         try
         {
             BufferedReader br = new BufferedReader(new FileReader(htmlFile));
+            //System.out.println("Html file " + htmlFile);
             while ((line = br.readLine()) != null) 
             {
                 line = line.toLowerCase();
                 inputQuery = inputQuery.toLowerCase();
             
                 //As the index is created over the cleaned input files, cleaning at this part is not necessary
-                //line  = Jsoup.parse(line).text();
+                line  = Jsoup.parse(line).text();
             
                 
                 tempList = Arrays.asList(line.split(" "));
