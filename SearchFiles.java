@@ -4,6 +4,7 @@ import org.apache.lucene.index.*;
 import java.util.*;
 import org.apache.lucene.store.*;
 import org.apache.lucene.document.*;
+import org.jsoup.Jsoup;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -116,7 +117,7 @@ public class SearchFiles {
     
     double wProb = 0.4;
     double cProb = 0.4;
-    int resultsCount = 25;
+    int resultsCount = 5;
  
     //Query elaboration flag
     int queryElborate = 0;
@@ -666,7 +667,9 @@ public class SearchFiles {
             {
                 line = line.toLowerCase();
                 inputQuery = inputQuery.toLowerCase();
-                
+            
+                line  = Jsoup.parse(line).text();
+                System.out.println(line);
                 //System.out.println(line);
                 //System.out.println(inputQuery);
                 
