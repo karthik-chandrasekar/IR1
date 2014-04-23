@@ -117,7 +117,7 @@ public class SearchFiles {
     
     double wProb = 0.4;
     double cProb = 0.4;
-    int resultsCount = 5;
+    int resultsCount = 50;
  
     //Query elaboration flag
     int queryElborate = 0;
@@ -555,7 +555,7 @@ public class SearchFiles {
                 int snipCount =0;
                 for(String snip : docHtmlWordsMap.get(pair.getKey()))
                 {
-                    if(snipCount == 3){break;}
+                    if(snipCount == 6){break;}
                     snip = snip.trim();
                     
                     if(tempStr == null)
@@ -564,7 +564,7 @@ public class SearchFiles {
                     }
                     else
                     {
-                        tempStr = tempStr + " , " + snip;
+                        tempStr = tempStr + ", " + snip;
                     }
                     snipCount ++;
 
@@ -1915,6 +1915,7 @@ public class SearchFiles {
         if (QEval == 1)
         {
             sObj.queryElborate = 1;
+            sObj.resultsCount = 15;
         }
                 
             long startTime = System.currentTimeMillis();
