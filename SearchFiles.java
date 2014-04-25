@@ -235,7 +235,10 @@ public class SearchFiles {
         }
         else if (loopVar > 2)
         {
+            startTime = System.currentTimeMillis();
             sObj.resultsClustering(sObj, loopVar);
+            endTime = System.currentTimeMillis();
+            System.out.println("Time taken for clustering "+ (double)(endTime - startTime)/1000);
         }
     }
     
@@ -436,7 +439,7 @@ public class SearchFiles {
             }
             else
             {
-                assocWordString = assocWordString + " , " +assocWord;
+                assocWordString = assocWordString + ", " +assocWord;
             }           
         }       
         
@@ -575,8 +578,7 @@ public class SearchFiles {
                 tempSet.add(keyword);
                 wordcount ++;
             }
-            
-                     
+                                 
             clusterKeyWords.put(docClusterMap.get(pair.getKey()), tempSet);
             
        }
@@ -873,8 +875,55 @@ public class SearchFiles {
                 bestDocClusterMap.putAll(docClusterMap);
                 maxSSE = curSSE;
             }
+            
+            //Find the average similarity of cluster instances to its corresponding centroid
+            findAvgSimilarity(docClusterMap, centroidList, sObj);
+            
         }
         sObj.displayClusters(docClusterMap);
+    }
+    
+    
+    
+    void findAvgSimilarity(Map<Integer, Integer> docClusterMap, List<Map<String, Float>> centroidList, SearchFiles sObj)   
+    {
+        
+        //Find average similarity of every instances with its centroid. 
+        //This measure is to check if similarity of an instance with centroid varies with increase/decrease with change in value of k.
+        Map<Integer, Float> avgSimMap = new HashMap<Integer, Float>();
+        Map<Integer, Integer> instanceCount = new HashMap<Integer, Integer>();
+        int count = 0;
+        float simVal = 0;
+        
+        for(Map.Entry<Integer, Integer> docInstanceMap: docClusterMap.entrySet())
+        {
+            if(avgSimMap.containsKey(docInstanceMap.getValue()))
+            {
+                simVal = avgSimMap.get(docInstanceMap.getValue());
+                count = instanceCount.get(docInstanceMap.getValue());
+                count ++;
+            }
+            else
+            {
+                simVal = 0;
+                count = 1;
+            }
+            simVal = simVal + sObj.getWordVectorMaxDiff(sObj.docWordsMap.get(docInstanceMap.getKey()), centroidList.get(docInstanceMap.getValue()));
+            avgSimMap.put(docInstanceMap.getValue(), simVal);
+            instanceCount.put(docInstanceMap.getValue(), count);
+        }   
+        
+        
+        //Find the average similarity values
+        float avgSimVal;
+        for(Map.Entry<Integer, Float> pair : avgSimMap.entrySet())
+        {
+            avgSimVal = (float)pair.getValue()/instanceCount.get(pair.getKey());
+            avgSimMap.put(pair.getKey(), avgSimVal);
+            avgSimVal = 0;
+        }
+        
+        System.out.println("Avg similarity of instance and centroid " + avgSimMap);
     }
     
     Float findSSE(Map<Integer, Integer> docClusterMap, List<Map<String, Float>> oldCentroidList, SearchFiles sObj)
