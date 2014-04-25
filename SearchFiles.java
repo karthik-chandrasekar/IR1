@@ -100,7 +100,7 @@ public class SearchFiles {
     Map<Integer, Map<String, Float>> docWordsMap = new HashMap<Integer, Map<String, Float>>();
     Map<Integer, Map<String, Integer>> docWordsTfMap = new HashMap<Integer, Map<String, Integer>>();
     
-    int kSize = 3;
+    int kSize =10;
     int rCount = 3;
        
     //String indexPath = "/Users/karthikchandrasekar/Desktop/SecondSem/IR/Project1/irs13/index";
@@ -915,15 +915,19 @@ public class SearchFiles {
         
         
         //Find the average similarity values
+        System.out.println("Avg similarity of instance and centroid " + avgSimMap);
+        System.out.println("Avg similarity of instance and centroid " + instanceCount);
         float avgSimVal;
+        float totalAvgSimVal=0;
         for(Map.Entry<Integer, Float> pair : avgSimMap.entrySet())
         {
-            avgSimVal = (float)pair.getValue()/instanceCount.get(pair.getKey());
+            avgSimVal = (float)pair.getValue()/(float)instanceCount.get(pair.getKey());
             avgSimMap.put(pair.getKey(), avgSimVal);
-            avgSimVal = 0;
+            totalAvgSimVal = totalAvgSimVal + avgSimVal;            
         }
         
         System.out.println("Avg similarity of instance and centroid " + avgSimMap);
+        System.out.println("Total average similarity of instance and centroid " + (float)totalAvgSimVal/(float)sObj.kSize);
     }
     
     Float findSSE(Map<Integer, Integer> docClusterMap, List<Map<String, Float>> oldCentroidList, SearchFiles sObj)
