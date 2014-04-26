@@ -84,6 +84,9 @@ public class KarthikProject3Servlet extends HttpServlet {
                 //results = sObj.servletCall(Query, method, QEval);
                 resultMapList = sObj.servletCall(Query, method, QEval);
                 
+                System.out.println("Got map returned by search files");
+                System.out.println(resultMapList);
+                
                 outputBuf.append("<html>");
                 outputBuf.append("<body>");
 
@@ -164,7 +167,7 @@ public class KarthikProject3Servlet extends HttpServlet {
                     
                     if(qe != null)
                     {
-                        outputBuf.append("<p>"+qe+"</p1>");
+                        outputBuf.append("<p>"+" Consider adding these terms in your query -  "+qe+"</p1>");
                     }
                     
                 }
