@@ -100,7 +100,7 @@ public class SearchFiles {
     Map<Integer, Map<String, Float>> docWordsMap = new HashMap<Integer, Map<String, Float>>();
     Map<Integer, Map<String, Integer>> docWordsTfMap = new HashMap<Integer, Map<String, Integer>>();
     
-    int kSize =10;
+    int kSize =3;
     int rCount = 3;
        
     //String indexPath = "/Users/karthikchandrasekar/Desktop/SecondSem/IR/Project1/irs13/index";
