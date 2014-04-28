@@ -472,6 +472,10 @@ public class SearchFiles {
         List<String> neighBourWordsList;
         Set<String> keyWordsSet;
         
+        
+        long startTime = System.currentTimeMillis();
+
+        
         for(Map.Entry<Integer, Integer> pair: sortedMap.entrySet())
         {
             if(docPrintCountMap.containsKey(pair.getValue()))
@@ -498,18 +502,20 @@ public class SearchFiles {
             url = url.substring(1, url.length());
             System.out.println("Url " + url);
             
+
             //Add key words of every document 
             keyWordsSet = getKeyWords(pair.getKey());
             docKeyWordsMap.put(pair.getKey(), keyWordsSet);
             
             // Add neighbour words of query in every document
+
             neighBourWordsList = getNeighbourWords(pair.getKey(), url);
             if (neighBourWordsList.isEmpty())
             {
                 neighBourWordsList.addAll(keyWordsSet);
             }
             docHtmlWordsMap.put(pair.getKey(), neighBourWordsList);
-            
+
                      
             if(skipFlag == 0)
             {
@@ -582,7 +588,10 @@ public class SearchFiles {
             clusterKeyWords.put(docClusterMap.get(pair.getKey()), tempSet);
             
        }
-        
+        long endTime = System.currentTimeMillis();
+
+        System.out.println("Time taken for doc + cluster snippet generation is "+ (double)(endTime - startTime)/1000);
+       
         System.out.println("Cluster description");
         for(Map.Entry<Integer, Set<String>> clusterDesc: clusterKeyWords.entrySet())
         {
