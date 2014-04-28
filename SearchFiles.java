@@ -1667,6 +1667,7 @@ public class SearchFiles {
         long startTime = System.currentTimeMillis();
 
         String[] terms = str.split("\\s+");
+        String DYMWord = null;
         
         int queryLen = terms.length;
         double relTfIdf;
@@ -1686,10 +1687,26 @@ public class SearchFiles {
                 System.out.println("No match found for this word");
                 word = sObj.handleMisspeltWords(word, sObj);
                 System.out.println("Did You Mean  " + word);
+                
+                if(DYMWord != null)
+                {
+                    DYMWord = DYMWord + ", " + word;
+                }
+                else
+                {
+                    DYMWord = word;
+                }
+                
                 term = new Term("contents", word);
                 tdocs = r.termDocs(term);
             }
 
+            
+            System.out.println(UIResultsList);
+
+          
+            
+            
             while(tdocs.next())
             {
                 if (tdocs.doc() > sObj.docSize)
@@ -1710,7 +1727,18 @@ public class SearchFiles {
                 relMapTfIdf.put(docid, relTfIdf);   
                 
             }
+          
+            
         }
+        if(DYMWord != null)
+        {
+            sObj.UIResults.put("DYM", DYMWord);
+            sObj.UIResultsList.add(UIResults);
+            return;
+
+        }
+        
+
         System.out.println(" Total number of results of TfIdf " + relMapTfIdf.size());
         sObj.showResults(relMapTfIdf, r, sObj);
         long endTime = System.currentTimeMillis();

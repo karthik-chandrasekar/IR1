@@ -100,12 +100,14 @@ public class KarthikProject3Servlet extends HttpServlet {
                 String para;
                 String resultLink;
                 String qe;
+                String DYMWord;
                 
                 for(Map<String, String> resultPair : resultMapList)
                 {
                     para = null;
                     resultLink = null;
                     qe = null;
+                    DYMWord = null;
                     
                     if(resultPair.containsKey("DID"))
                     {
@@ -156,6 +158,11 @@ public class KarthikProject3Servlet extends HttpServlet {
                     }
                     
                     
+                    if (resultPair.containsKey("DYM"))
+                    {
+                        DYMWord = resultPair.get("DYM");
+                    }
+                    
                     if(para != null)
                     {
                         outputBuf.append("<p>"+para+"</p1>"+"<br>");
@@ -168,6 +175,11 @@ public class KarthikProject3Servlet extends HttpServlet {
                     if(qe != null)
                     {
                         outputBuf.append("<p>"+" Consider adding these terms in your query -  "+qe+"</p1>");
+                    }
+                    
+                    if(DYMWord != null)
+                    {
+                        outputBuf.append("<p>"+" Did You Mean -  "+DYMWord+" ? " +"</p1>");
                     }
                     
                 }
